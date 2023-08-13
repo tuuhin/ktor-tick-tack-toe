@@ -1,4 +1,4 @@
-package com.eva.tick_tack_toe.feature_game.domain.models
+package com.eva.tick_tack_toe.feature_game.models
 
 import com.eva.tick_tack_toe.utils.BoardSymbols
 
