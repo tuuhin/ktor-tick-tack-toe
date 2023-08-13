@@ -1,5 +1,6 @@
 package com.eva.tick_tack_toe.plugins
 
+import com.eva.tick_tack_toe.di.appModules
 import io.ktor.server.application.*
 import org.koin.ktor.plugin.Koin
 import org.koin.ktor.plugin.KoinApplicationStarted
@@ -9,14 +10,14 @@ import org.koin.logger.slf4jLogger
 fun Application.configureKoin() {
     install(Koin) {
         slf4jLogger()
-        modules()
+        modules(appModules)
     }
 
     environment.monitor.subscribe(KoinApplicationStarted) {
-        log.debug("Koin Started")
+        log.info("Koin Started")
     }
 
     environment.monitor.subscribe(KoinApplicationStopped) {
-        log.debug("Koin Stopped")
+        log.info("Koin Stopped")
     }
 }

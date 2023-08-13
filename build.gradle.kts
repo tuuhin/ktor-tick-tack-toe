@@ -27,12 +27,14 @@ dependencies {
     implementation(libs.server.kotlinxserialization)
     implementation(libs.server.websockets)
     implementation(libs.server.netty)
-
+    implementation(libs.server.logger)
+    //kotlin
+    implementation(libs.kotlin.immutable)
     //koin-di
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger)
-
     //test dependencies
     testImplementation(libs.server.test)
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.coroutine.test)
 }

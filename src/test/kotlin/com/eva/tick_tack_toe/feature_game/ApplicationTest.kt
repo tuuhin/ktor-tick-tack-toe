@@ -1,4 +1,4 @@
-package com.eva
+package com.eva.tick_tack_toe.feature_game
 
 import com.eva.tick_tack_toe.plugins.configureRouting
 import io.ktor.client.request.*

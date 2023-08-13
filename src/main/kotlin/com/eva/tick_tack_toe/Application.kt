@@ -9,7 +9,6 @@ fun Application.module() {
     configureKoin()
     configureSecurity()
     configureMonitoring()
-    configureSerialization()
     configureSockets()
     configureRouting()
 }
