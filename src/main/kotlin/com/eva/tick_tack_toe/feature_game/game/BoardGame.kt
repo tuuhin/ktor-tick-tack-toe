@@ -1,6 +1,6 @@
 package com.eva.tick_tack_toe.feature_game.game
 
-import com.eva.tick_tack_toe.ext.toBoardPositions
+import com.eva.tick_tack_toe.utils.ext.toBoardPositions
 import com.eva.tick_tack_toe.feature_game.models.BoardPosition
 import com.eva.tick_tack_toe.feature_game.models.GameState
 import com.eva.tick_tack_toe.utils.BoardSymbols
