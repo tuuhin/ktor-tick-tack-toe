@@ -19,7 +19,6 @@ class BoardGame {
     )
 
     fun updateBoardState(position: BoardPosition, playerSymbols: BoardSymbols) {
-
         val updatedBoard = _gameState.value.boardState
             .mapIndexed { rowIndex, rowList ->
                 rowList.mapIndexed { colIndex, symbols ->
@@ -41,7 +40,7 @@ class BoardGame {
         _gameState.update { state ->
             state.copy(
                 isDraw = allFilled,
-                winnerSymbol = if (hasWinningCombination) state.playerSymbol else null,
+                winnerSymbol = if (hasWinningCombination) playerSymbols else null,
                 boardState = updatedBoard
             )
         }

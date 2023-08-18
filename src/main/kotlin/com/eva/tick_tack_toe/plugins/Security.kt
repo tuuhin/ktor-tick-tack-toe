@@ -1,22 +1,23 @@
 package com.eva.tick_tack_toe.plugins
 
+import com.eva.tick_tack_toe.utils.constants.GameConstants
+import com.eva.tick_tack_toe.utils.GameSessions
 import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import kotlin.time.Duration.Companion.days
+
 
 fun Application.configureSecurity() {
-    data class MySession(val count: Int = 0)
+
     install(Sessions) {
-        cookie<MySession>("MY_SESSION") {
-            cookie.extensions["SameSite"] = "lax"
+        cookie<GameSessions>(GameConstants.GAME_SESSION_NAME) {
+            val isDevMode = this@configureSecurity.environment.developmentMode
+            if (!isDevMode) {
+                cookie.secure = true
+                cookie.maxAge = 1.days
+            }
+            cookie.httpOnly = true
         }
     }
-    routing {
-        get("/session/increment") {
-                val session = call.sessions.get<MySession>() ?: MySession()
-                call.sessions.set(session.copy(count = session.count + 1))
-                call.respondText("Counter is ${session.count}. Refresh to increment.")
-            }
-    }
+
 }
