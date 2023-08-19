@@ -1,11 +1,8 @@
 package com.eva.tick_tack_toe.feature_game.dto
 
-import kotlinx.serialization.EncodeDefault
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 
-@Serializable
+@Serializable(ServerEventsSerializer::class)
 @OptIn(ExperimentalSerializationApi::class)
 sealed interface ServerSendEventsDto {
     @Serializable

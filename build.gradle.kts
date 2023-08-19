@@ -37,4 +37,5 @@ dependencies {
     testImplementation(libs.server.test)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.coroutine.test)
+    testImplementation(libs.client.contentnegotiation)
 }

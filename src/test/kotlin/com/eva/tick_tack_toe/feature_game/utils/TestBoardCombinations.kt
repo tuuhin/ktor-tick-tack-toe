@@ -4,16 +4,25 @@ import com.eva.tick_tack_toe.utils.BoardSymbols
 
 sealed class TestBoardCombinations(val combinations: List<List<BoardSymbols>>) {
 
+    data class XFilledAtTopLeftCorner(val symbols: BoardSymbols) : TestBoardCombinations(
+        combinations = List(3) { row ->
+            List(3) { col ->
+                if (row == 0 && col == 0) symbols
+                else BoardSymbols.Blank
+            }
+        }
+    )
+
     data object UnfilledCombinations : TestBoardCombinations(
         combinations = List(3) { _ ->
             List(3) { _ -> BoardSymbols.Blank }
         }
     )
 
-    data object DiagonalFilledFromTopWithXXXCombination : TestBoardCombinations(
+    data class DiagonalFilledWithSameSymbol(val symbols: BoardSymbols) : TestBoardCombinations(
         combinations = List(3) { row ->
             List(3) { col ->
-                if (row == col) BoardSymbols.XSymbol
+                if (row == col) symbols
                 else BoardSymbols.Blank
             }
         }

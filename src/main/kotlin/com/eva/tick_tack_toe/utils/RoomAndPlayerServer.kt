@@ -4,8 +4,6 @@ import com.eva.tick_tack_toe.feature_game.exceptions.PlayerRoomNotFoundException
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import io.ktor.util.*
-import io.ktor.util.collections.*
-import io.ktor.websocket.*
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -15,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 class RoomAndPlayerServer {
 
     /**
-     * A [HashMap] to hold the Room and the Game Models.
+     * A [ConcurrentHashMap] to hold the Room and the Game Models.
      * When a player creates a room a roomId is generated that is treated as the key.
      * But there is also an option to play the game without creating the room.
      * In that case the server will spin up a random roomId, and [GameRoomModel.isAnonymous]
@@ -31,7 +29,7 @@ class RoomAndPlayerServer {
      * @param isAnonymous  Is the room is anonymous
      * @return The newly created [GamePlayerModel] instance
      */
-    fun addToRoom(room: String, board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
+    fun createGameRoom(room: String, board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
         val model = GameRoomModel(room = room, boardCount = board, isAnonymous = isAnonymous)
         gameRooms[room] = model
         return gameRooms.getOrDefault(room, defaultValue = model)
@@ -58,7 +56,7 @@ class RoomAndPlayerServer {
         } ?: run {
             // Helps to generate a unique string
             val randomNewRoomId = generateNonce()
-            addToRoom(room = randomNewRoomId, isAnonymous = true).also { model ->
+            createGameRoom(room = randomNewRoomId, isAnonymous = true).also { model ->
                 gameRooms[model.room] = model.copy(players = listOf(player))
             }
         }
@@ -103,6 +101,7 @@ class RoomAndPlayerServer {
      * Removes the Game room.
      * Should be only used when the game is over otherwise the game data will be lost
      * @param room : Room to be removed
+     * @return the deleted instance of [GameRoomModel]
      */
     private fun deleteRoom(room: String) = gameRooms.remove(room)
 

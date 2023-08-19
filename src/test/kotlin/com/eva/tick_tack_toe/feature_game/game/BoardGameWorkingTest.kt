@@ -34,7 +34,7 @@ class BoardGameWorkingTest {
         boardGame.updateBoardState(BoardPosition(2, 2), BoardSymbols.XSymbol)
         assertEquals(
             boardGame.gameState.value.boardState,
-            TestBoardCombinations.DiagonalFilledFromTopWithXXXCombination.combinations
+            TestBoardCombinations.DiagonalFilledWithSameSymbol(BoardSymbols.XSymbol).combinations
         )
     }
 

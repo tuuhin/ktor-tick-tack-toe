@@ -13,8 +13,11 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import org.koin.ktor.ext.inject
 
+/**
+ * Create Room route,creates a new room by passing the number of board count as a body
+ */
 fun Route.createRoomRoute() {
-    route(path = ApiPaths.CREATE_ROOM) {
+    route(path = ApiPaths.CREATE_ROOM_PATH) {
         val server by inject<RoomAndPlayerServer>()
 
         get {
@@ -25,23 +28,27 @@ fun Route.createRoomRoute() {
         }
 
         post {
-            call.receiveNullable<CreateRoomSerializer>()
-                ?.let { serializer ->
-                    generateNonce()
-                        .also { roomId ->
-                        server.addToRoom(room = roomId, board = serializer.rounds)
-                            ?.let { room ->
-                                call.respond(
-                                    status = HttpStatusCode.OK,
-                                    message = RoomSerializer(room = room.room, rounds = room.boardCount)
-                                )
+            try {
+                call.receiveNullable<CreateRoomSerializer>()
+                    ?.let { serializer ->
+                        generateNonce()
+                            .also { roomId ->
+                                server.createGameRoom(room = roomId, board = serializer.rounds)
+                                    ?.let { room ->
+                                        call.respond(
+                                            status = HttpStatusCode.OK,
+                                            message = RoomSerializer(room = room.room, rounds = room.boardCount)
+                                        )
+                                    }
                             }
-                    }
-                } ?: run {
-                call.respond(
-                    status = HttpStatusCode.PreconditionFailed,
-                    message = BaseHttpException(detail = "Failed to create a room")
-                )
+                    } ?: run {
+                    call.respond(
+                        status = HttpStatusCode.PreconditionFailed,
+                        message = BaseHttpException(detail = "Failed to create a room")
+                    )
+                }
+            } catch (e: Exception) {
+                println(e.localizedMessage)
             }
         }
     }

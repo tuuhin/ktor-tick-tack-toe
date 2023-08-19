@@ -12,9 +12,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
+
+/**
+ * Checks if the room is join able i.e, the room exits and the number of players is lesser than 2.
+ */
 fun Route.checkJoinRoomRequest() {
     val server by inject<RoomAndPlayerServer>()
-    route(path = ApiPaths.JOIN_ROOM) {
+    route(path = ApiPaths.CHECK_ROOM_PATH) {
         get {
             call.respond(
                 status = HttpStatusCode.NotAcceptable,
