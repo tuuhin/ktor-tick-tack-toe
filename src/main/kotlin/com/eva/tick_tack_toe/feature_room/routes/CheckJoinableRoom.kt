@@ -22,7 +22,7 @@ fun Route.checkJoinRoomRequest() {
         get {
             call.respond(
                 status = HttpStatusCode.NotAcceptable,
-                message = BaseHttpException("Get method not allowed")
+                message = BaseHttpException("Get method not allowed use a, POST request to check a room")
             )
         }
         post {

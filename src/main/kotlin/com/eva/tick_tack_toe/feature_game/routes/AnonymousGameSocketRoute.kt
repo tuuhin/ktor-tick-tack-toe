@@ -14,29 +14,20 @@ import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import org.koin.ktor.ext.inject
 
 /**
- * Server accepts WebSocket requests to *ws://domain:port/ws/game*.
+ * An anonymous game route,if the user don't have a room id then this route will be used
  */
-fun Route.gameSocketRoute() {
-    webSocket(path = ApiPaths.GAME_SOCKET_PATH_WITH_ROOM_PARAMS) {
+fun Route.anonymousGameSocketRoute() {
+    webSocket(path = ApiPaths.GAME_SOCKET_PATH) {
 
         call.sessions.get<GameSessions>()?.let { session ->
 
             val boardGame: RealtimeBoardGame by inject()
-
             val userName = call.request.queryParameters[GameConstants.CLIENT_USERNAME_PARAMS] ?: "Anonymous"
-            val roomId = call.parameters[GameConstants.GAME_ROOM_ID_PARAMS]
-                ?: return@webSocket close(
-                    reason = CloseReason(
-                        code = CloseReason.Codes.PROTOCOL_ERROR,
-                        message = "Cannot find the room Id"
-                    )
-                )
 
             val player = boardGame.onConnect(
                 session = this,
                 userName = userName,
                 clientId = session.clientId,
-                room = roomId
             )
 
             try {

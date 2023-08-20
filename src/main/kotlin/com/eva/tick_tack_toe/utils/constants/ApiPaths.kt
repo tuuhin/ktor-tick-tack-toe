@@ -10,5 +10,5 @@ object ApiPaths {
     const val WEBSOCKET_ROUTE = "/ws"
 
     const val GAME_SOCKET_PATH = "/game"
-    // const val GAME_CHAT_PATH = "/chat"
+    const val GAME_SOCKET_PATH_WITH_ROOM_PARAMS = "/game/{${GameConstants.GAME_ROOM_ID_PARAMS}}"
 }

@@ -18,6 +18,7 @@ server_logger = { module = "ch.qos.logback:logback-classic", version.ref = "logg
 #koin-dependencies
 koin_ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin_ktor" }
 koin_logger = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin_ktor" }
+ktor_status_pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor_version" }
 #test-dependencies
 server_test = { module = "io.ktor:ktor-server-tests", version.ref = "ktor_version" }
 kotlin_test = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin_version" }

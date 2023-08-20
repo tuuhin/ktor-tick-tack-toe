@@ -23,7 +23,7 @@ fun Route.createRoomRoute() {
         get {
             call.respond(
                 status = HttpStatusCode.NotAcceptable,
-                message = BaseHttpException("Get method not allowed")
+                message = BaseHttpException("Get method not allowed use a, POST request to create a room")
             )
         }
 
@@ -34,7 +34,7 @@ fun Route.createRoomRoute() {
                         generateNonce()
                             .also { roomId ->
                                 server.createGameRoom(room = roomId, board = serializer.rounds)
-                                    ?.let { room ->
+                                    .let { room ->
                                         call.respond(
                                             status = HttpStatusCode.OK,
                                             message = RoomSerializer(room = room.room, rounds = room.boardCount)

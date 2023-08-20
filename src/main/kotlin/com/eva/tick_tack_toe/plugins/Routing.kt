@@ -1,5 +1,6 @@
 package com.eva.tick_tack_toe.plugins
 
+import com.eva.tick_tack_toe.feature_game.routes.anonymousGameSocketRoute
 import com.eva.tick_tack_toe.feature_game.routes.gameSocketRoute
 import com.eva.tick_tack_toe.feature_room.routes.checkJoinRoomRequest
 import com.eva.tick_tack_toe.feature_room.routes.createRoomRoute
@@ -23,6 +24,7 @@ fun Application.configureRouting() {
         }
         route(path = ApiPaths.WEBSOCKET_ROUTE) {
             configureInterceptor()
+            anonymousGameSocketRoute()
             gameSocketRoute()
         }
     }

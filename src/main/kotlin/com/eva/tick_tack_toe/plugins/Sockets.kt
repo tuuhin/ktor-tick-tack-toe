@@ -2,7 +2,6 @@ package com.eva.tick_tack_toe.plugins
 
 import io.ktor.serialization.kotlinx.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 import java.time.Duration

@@ -24,7 +24,37 @@ class RealtimeBoardGame(
     private lateinit var playerRoom: GameRoomModel
 
     /**
-     * Runs when the players connect to play the game
+     * Runs when the players connect to play the game with specific room
+     * @param session : [WebSocketSession]
+     * @param userName : Username for the player
+     * @param clientId : Unique Client Id for the user
+     * @param room : Room id for the game
+     * @return The newly created [GamePlayerModel]
+     */
+    suspend fun onConnect(
+        session: WebSocketServerSession,
+        userName: String,
+        clientId: String,
+        room: String
+    ): GamePlayerModel {
+        val player = GamePlayerModel(userName = userName, clientId = clientId, session = session)
+
+        playerServer.addPlayersToRoom(room, player)
+        playerRoom = playerServer.getRoomFromClientId(clientId)
+
+        playerRoom.players.forEach { gamePlayer ->
+            if (gamePlayer != player)
+                gamePlayer.session.sendSerialized(
+                    ServerSendEventsDto
+                        .ServerMessage(message = "${player.userName} joined the stream")
+                )
+        }
+
+        return player
+    }
+
+    /**
+     * Runs when the players connect to play an anonymous game
      * @param session : [WebSocketSession]
      * @param userName : Username for the player
      * @param clientId : Unique Client Id for the user
@@ -34,14 +64,10 @@ class RealtimeBoardGame(
         session: WebSocketServerSession,
         userName: String,
         clientId: String,
-        room: String? = null
     ): GamePlayerModel {
         val player = GamePlayerModel(userName = userName, clientId = clientId, session = session)
 
-
-        room?.let { roomId ->
-            playerServer.addPlayersToRoom(roomId, player)
-        } ?: playerServer.addAnonymousPlayerToRoom(player)
+        playerServer.addAnonymousPlayerToRoom(player)
 
         playerRoom = playerServer.getRoomFromClientId(clientId)
 

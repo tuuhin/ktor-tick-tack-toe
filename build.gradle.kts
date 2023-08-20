@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.server.websockets)
     implementation(libs.server.netty)
     implementation(libs.server.logger)
+    implementation(libs.ktor.status.pages)
     //kotlin
     implementation(libs.kotlin.immutable)
     //koin-di

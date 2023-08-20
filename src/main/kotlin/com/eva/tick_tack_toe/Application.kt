@@ -8,6 +8,7 @@ fun main(args: Array<String>) = io.ktor.server.netty.EngineMain.main(args)
 
 val Logger = KtorSimpleLogger("com.eva.tick_tac_toe")
 fun Application.module() {
+    configureStatusPages()
     configureKoin()
     configureSecurity()
     configureMonitoring()
