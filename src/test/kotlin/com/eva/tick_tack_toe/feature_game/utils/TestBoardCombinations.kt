@@ -4,10 +4,10 @@ import com.eva.tick_tack_toe.utils.BoardSymbols
 
 sealed class TestBoardCombinations(val combinations: List<List<BoardSymbols>>) {
 
-    data class XFilledAtTopLeftCorner(val symbols: BoardSymbols) : TestBoardCombinations(
+    data class FilledAtTopCorner(val symbol: BoardSymbols) : TestBoardCombinations(
         combinations = List(3) { row ->
             List(3) { col ->
-                if (row == 0 && col == 0) symbols
+                if (row == 0 && col == 0) symbol
                 else BoardSymbols.Blank
             }
         }

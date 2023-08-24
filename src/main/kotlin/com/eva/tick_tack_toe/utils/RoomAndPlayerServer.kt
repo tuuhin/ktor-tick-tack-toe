@@ -4,13 +4,18 @@ import com.eva.tick_tack_toe.feature_game.exceptions.PlayerRoomNotFoundException
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import io.ktor.util.*
+import io.ktor.util.logging.*
 import java.util.concurrent.ConcurrentHashMap
-
 
 /**
  * [RoomAndPlayerServer] class will help to interact with the joined players and available gameRooms
  */
 class RoomAndPlayerServer {
+
+    /**
+     * Logger for the connector Messages
+     */
+    private val playerLogger = KtorSimpleLogger("PLAYER_CONNECTION_LOGGER")
 
     /**
      * A [ConcurrentHashMap] to hold the Room and the Game Models.
@@ -24,15 +29,17 @@ class RoomAndPlayerServer {
     /**
      * On creating a new room via post request.
      * A new room will be prepared which latter can be used by the players
-     * @param room  Unique Room Id
      * @param board  No of boards for the game
      * @param isAnonymous  Is the room is anonymous
      * @return The newly created [GamePlayerModel] instance
      */
-    fun createGameRoom(room: String, board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
+    fun createGameRoom(board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
+        val room = generateNonce()
         val model = GameRoomModel(room = room, boardCount = board, isAnonymous = isAnonymous)
         gameRooms[room] = model
+        playerLogger.info("CREATED NEW ROOM WITH ROOM ID $room")
         return gameRooms.getOrDefault(room, defaultValue = model)
+
     }
 
     /**
@@ -55,10 +62,10 @@ class RoomAndPlayerServer {
             gameRooms[model.room] = model.copy(players = players)
         } ?: run {
             // Helps to generate a unique string
-            val randomNewRoomId = generateNonce()
-            createGameRoom(room = randomNewRoomId, isAnonymous = true).also { model ->
-                gameRooms[model.room] = model.copy(players = listOf(player))
-            }
+            createGameRoom(isAnonymous = true)
+                .also { model ->
+                    gameRooms[model.room] = model.copy(players = listOf(player))
+                }
         }
     }
 
@@ -80,15 +87,21 @@ class RoomAndPlayerServer {
                 else -> model.players
             }
             gameRooms[room] = model.copy(players = players)
-        } ?: println("Provided room not found")
+        } ?: playerLogger.warn("Provided room not found")
     }
 
+    /**
+     * Removes the player from the game room, and if the game room is found to be empty also deletes
+     * the room
+     * @param player The instance of [GamePlayerModel] to be removed
+     */
     fun removePlayerFromRoom(player: GamePlayerModel) {
         val playerRoom = getRoomFromClientId(player.clientId)
         gameRooms[playerRoom.room]?.let { model ->
             val currentRoomPlayers = model.players.toMutableList()
             currentRoomPlayers.remove(player)
             if (currentRoomPlayers.size == 0) {
+                playerLogger.info("DELETING THE ROOM WITH ID :${playerRoom.room}")
                 deleteRoom(playerRoom.room)
                 return
             }

@@ -1,12 +1,9 @@
 package com.eva.tick_tack_toe.feature_game.route
 
-import com.eva.tick_tack_toe.feature_game.dto.BoardGameReceiveDataDto
-import com.eva.tick_tack_toe.feature_game.dto.BoardPositionDto
-import com.eva.tick_tack_toe.feature_game.dto.ServerSendEventTypes
-import com.eva.tick_tack_toe.feature_game.dto.ServerSendEventsDto
+import com.eva.tick_tack_toe.TestApiPaths
+import com.eva.tick_tack_toe.feature_game.dto.*
 import com.eva.tick_tack_toe.feature_game.mapper.toDto
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
-import com.eva.tick_tack_toe.TestApiPaths
 import com.eva.tick_tack_toe.feature_game.utils.TestBoardCombinations
 import com.eva.tick_tack_toe.feature_room.dto.GamePlayerDto
 import com.eva.tick_tack_toe.utils.BoardSymbols
@@ -23,11 +20,13 @@ import kotlin.test.assertEquals
 
 class GameWebsocketTest {
 
-    private val  clientId = generateNonce()
-    private lateinit var player: GamePlayerDto
-
     @Test
     fun `check the working of the websockets`() = testApplication {
+
+        val clientId = generateNonce()
+        var playerX: GamePlayerDto? = null
+        var playerO: GamePlayerDto? = null
+        var room: GameRoomDto? = null
 
         val socketClient = createClient {
             install(WebSockets) {
@@ -45,101 +44,207 @@ class GameWebsocketTest {
 
             when (val received = receiveDeserialized<ServerSendEventsDto>()) {
                 is ServerSendEventsDto.ServerGameState -> {
-                    val currentPlayer = GamePlayerDto(
-                        userName = "Anonymous",
-                        clientId = clientId,
-                        winCount = 0,
-                        lostCount = 0,
-                        drawCount = 0,
-                        playerSymbol = received.state.player.playerSymbol
-                    )
-
-                    player = currentPlayer
-
-                    val room = GameRoomModel(room = received.state.board.room, isAnonymous = true).toDto()
-
-                    assertEquals(received.state.board, room)
 
                     assertEquals(
                         received.type,
                         ServerSendEventTypes.GAME_STATE_TYPE.type,
-                        "check same receive type "
+                        message = "check the receive type to be game type"
                     )
+
+                    received.state.playerX?.let { player ->
+                        playerX = GamePlayerDto(
+                            userName = "Anonymous",
+                            clientId = clientId,
+                            winCount = 0,
+                            lostCount = 0,
+                            drawCount = 0,
+                            playerSymbol = player.playerSymbol
+                        )
+
+                        room = GameRoomModel(
+                            room = received.state.board.room,
+                            isAnonymous = true
+                        ).toDto()
+
+                        assertEquals(
+                            received.state.playerX,
+                            playerX,
+                            message = "check player_x is really player_x or not"
+                        )
+                    }
+                    received.state.playerO?.let { player ->
+                        playerO = GamePlayerDto(
+                            userName = "Anonymous",
+                            clientId = clientId,
+                            winCount = 0,
+                            lostCount = 0,
+                            drawCount = 0,
+                            playerSymbol = player.playerSymbol
+                        )
+
+                        room = GameRoomModel(
+                            room = received.state.board.room,
+                            isAnonymous = true
+                        ).toDto()
+
+                        assertEquals(
+                            received.state.playerO,
+                            playerX,
+                            message = "check player o is player o or not"
+                        )
+                    }
                     assertEquals(
-                        received.state.player,
-                        currentPlayer,
-                        "check same player or not"
+                        received.state.board,
+                        room,
+                        message = "Game room and board are same or not"
                     )
                 }
 
                 else -> {}
             }
 
-            sendSerialized(
-                BoardGameReceiveDataDto(
-                    clientId = clientId,
-                    symbol = player.playerSymbol,
-                    pos = BoardPositionDto(0, 0)
+            playerX?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(0, 0)
+                    )
                 )
-            )
+            }
+            playerO?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(0, 0)
+                    )
+                )
+            }
 
             when (val received = receiveDeserialized<ServerSendEventsDto>()) {
                 is ServerSendEventsDto.ServerGameState -> {
-                    assertEquals(received.state.player, player)
+                    received.state.playerO?.let { player ->
+                        assertEquals(player, playerO, message = "Checking the state of player O")
+                    }
+                    received.state.playerX?.let { player ->
+                        assertEquals(player, playerX, message = "Checking the state of player X")
+
+                    }
 
                     val layout = received.state.board.boardLayout.toBoardLayout()
 
                     assertEquals(
                         received.type,
                         ServerSendEventTypes.GAME_STATE_TYPE.type,
-                        "check same receive type "
+                        message = "check the receive type to be game type"
                     )
+                    received.state.playerO?.let { player ->
 
-                    val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
+                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
 
-                    assertEquals(layout, TestBoardCombinations.XFilledAtTopLeftCorner(playerSymbol).combinations)
+                        assertEquals(
+                            layout,
+                            TestBoardCombinations.FilledAtTopCorner(playerSymbol).combinations,
+                            message = "Checking if the board shape is filled at O at corner only"
+                        )
+                    }
+
+                    received.state.playerX?.let { player ->
+
+                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
+
+                        assertEquals(
+                            layout,
+                            TestBoardCombinations.FilledAtTopCorner(playerSymbol).combinations,
+                            message = "Checking if the board shape is filled at X at corner only"
+                        )
+                    }
 
                 }
 
                 else -> {}
             }
 
-            sendSerialized(
-                BoardGameReceiveDataDto(
-                    clientId = clientId,
-                    symbol = player.playerSymbol,
-                    pos = BoardPositionDto(1, 1)
+            playerX?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(1, 1)
+                    )
                 )
-            )
+            }
+            playerO?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(1, 1)
+                    )
+                )
+            }
+
             // Skipping the socket receive
             receiveDeserialized<ServerSendEventsDto>()
 
-            sendSerialized(
-                BoardGameReceiveDataDto(
-                    clientId = clientId,
-                    symbol = player.playerSymbol,
-                    pos = BoardPositionDto(2, 2)
+            playerX?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(2, 2)
+                    )
                 )
-            )
+            }
+            playerO?.let { player ->
+                sendSerialized(
+                    BoardGameReceiveDataDto(
+                        clientId = clientId,
+                        symbol = player.playerSymbol,
+                        boardPosition = BoardPositionDto(2, 2)
+                    )
+                )
+            }
 
             when (val received = receiveDeserialized<ServerSendEventsDto>()) {
                 is ServerSendEventsDto.ServerGameState -> {
-                    assertEquals(received.state.player, player)
+                    received.state.playerO?.let { player ->
+                        assertEquals(player, playerO, message = "Checking the state of player O")
+                    }
+                    received.state.playerX?.let { player ->
+                        assertEquals(player, playerX, message = "Checking the state of player X")
+
+                    }
 
                     val layout = received.state.board.boardLayout.toBoardLayout()
 
                     assertEquals(
                         received.type,
                         ServerSendEventTypes.GAME_STATE_TYPE.type,
-                        "check same receive type "
+                        message = "check the receive type to be game type"
                     )
+                    received.state.playerO?.let { player ->
 
-                    val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
+                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
 
-                    assertEquals(
-                        layout,
-                        TestBoardCombinations.DiagonalFilledWithSameSymbol(playerSymbol).combinations
-                    )
+                        assertEquals(
+                            layout,
+                            TestBoardCombinations.DiagonalFilledWithSameSymbol(playerSymbol).combinations,
+                            message = "Board filled via diagonal by player O"
+                        )
+                    }
+
+                    received.state.playerX?.let { player ->
+
+                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
+
+                        assertEquals(
+                            layout,
+                            TestBoardCombinations.DiagonalFilledWithSameSymbol(playerSymbol).combinations,
+                            message = "Board filled via diagonal by player X"
+                        )
+                    }
                 }
 
                 else -> {}

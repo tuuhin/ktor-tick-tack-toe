@@ -6,7 +6,7 @@ import io.ktor.util.logging.*
 
 fun main(args: Array<String>) = io.ktor.server.netty.EngineMain.main(args)
 
-val Logger = KtorSimpleLogger("com.eva.tick_tac_toe")
+val Logger = KtorSimpleLogger("TIC_TAC_TOE_GAME_LOGGER")
 fun Application.module() {
     configureStatusPages()
     configureKoin()

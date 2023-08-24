@@ -7,12 +7,12 @@ import com.eva.tick_tack_toe.feature_game.mapper.toDtoAsFlow
 import com.eva.tick_tack_toe.feature_game.mapper.toModel
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import com.eva.tick_tack_toe.feature_room.mappers.toDto
-import io.ktor.websocket.*
-import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import com.eva.tick_tack_toe.utils.BoardSymbols
+import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import io.ktor.server.websocket.*
-import kotlinx.coroutines.*
+import io.ktor.websocket.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -83,35 +83,37 @@ class RealtimeBoardGame(
     }
 
     /**
-     * Receives the events into the stream and updates the board accordingly
+     * Receives the events from the stream and updates the board accordingly
      */
     suspend fun onReceiveEvents(session: WebSocketServerSession) {
         session.incoming.consumeEach { frame ->
-            (frame as? Frame.Text)?.let { frameText ->
-                val readHead = frameText.readText()
-                val receiveData = Json.decodeFromString<BoardGameReceiveDataDto>(readHead)
-                playerRoom.board.updateBoardState(
-                    position = receiveData.pos.toModel(),
-                    playerSymbols = BoardSymbols.fromSymbol(receiveData.symbol)
-                )
-            }
+            (frame as? Frame.Text)
+                ?.let { frameText ->
+                    val readText = frameText.readText()
+                    val receiveDataDto = Json.decodeFromString<BoardGameReceiveDataDto>(readText)
+                    playerRoom.board.updateBoardState(
+                        position = receiveDataDto.boardPosition.toModel(),
+                        playerSymbols = BoardSymbols.fromSymbol(receiveDataDto.symbol)
+                    )
+                }
         }
     }
 
     /**
-     * BoardCast the events to the stream
+     * Broadcast the events to the stream
      */
     fun broadCastGameState(scope: CoroutineScope) {
         playerRoom.toDtoAsFlow()
             .onEach { board ->
+                val boardGame = BoardGameSendDataDto(
+                    playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
+                    playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
+                    board = board,
+                    isAllPlayerJoined = playerRoom.players.size >= 2
+                )
                 playerRoom.players.forEach { player ->
-                    val boardGame = BoardGameSendDataDto(
-                        player = player.toDto(),
-                        board = board
-                    )
-                    player.session.sendSerialized(
-                        ServerSendEventsDto.ServerGameState(state = boardGame)
-                    )
+                    player.session
+                        .sendSerialized(ServerSendEventsDto.ServerGameState(state = boardGame))
                 }
             }.launchIn(scope)
     }

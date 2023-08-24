@@ -4,6 +4,7 @@ import com.eva.tick_tack_toe.TestApiPaths
 import com.eva.tick_tack_toe.dto.BaseHttpResponse
 import com.eva.tick_tack_toe.feature_room.dto.CreateRoomSerializer
 import com.eva.tick_tack_toe.feature_room.dto.RoomSerializer
+import com.eva.tick_tack_toe.utils.constants.ApiMessage
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -56,11 +57,9 @@ class RoomRouteTests {
         }.apply {
             assertEquals(status, HttpStatusCode.OK)
             body<BaseHttpResponse>().apply {
-                assertEquals(detail, "Room is join-able for players")
+                assertEquals(detail, ApiMessage.ROOM_JOIN_ABLE_MESSAGE)
             }
         }
-
-
     }
 
     @Test
