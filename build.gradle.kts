@@ -1,3 +1,7 @@
+import io.ktor.plugin.features.DockerPortMapping
+import io.ktor.plugin.features.DockerPortMappingProtocol
+import io.ktor.plugin.features.JreVersion
+
 plugins {
     kotlin("jvm") version "1.8.20"
     id("io.ktor.plugin") version "2.3.3"
@@ -16,6 +20,23 @@ application {
 
 repositories {
     mavenCentral()
+}
+
+ktor {
+    docker {
+        localImageName.set("tick-tack-toe-image")
+        imageTag.set("$version")
+        jreVersion.set(JreVersion.JRE_17)
+        portMappings.set(
+            listOf(
+                DockerPortMapping(
+                    8080,
+                    8080,
+                    DockerPortMappingProtocol.TCP
+                )
+            )
+        )
+    }
 }
 
 dependencies {
