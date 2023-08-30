@@ -1,6 +1,6 @@
 package com.eva.tick_tack_toe.feature_room.routes
 
-import com.eva.tick_tack_toe.dto.BaseHttpException
+import com.eva.tick_tack_toe.dto.BaseHttpResponse
 import com.eva.tick_tack_toe.feature_room.dto.CreateRoomSerializer
 import com.eva.tick_tack_toe.feature_room.dto.RoomSerializer
 import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
@@ -25,7 +25,7 @@ fun Route.createRoomRoute() {
         get {
             call.respond(
                 status = HttpStatusCode.NotAcceptable,
-                message = BaseHttpException(ApiMessage.ROOM_GET_REQUEST_MESSAGE)
+                message = BaseHttpResponse(ApiMessage.ROOM_GET_REQUEST_MESSAGE)
             )
         }
         post {
@@ -39,17 +39,17 @@ fun Route.createRoomRoute() {
                         )
                     } ?: call.respond(
                     status = HttpStatusCode.PreconditionFailed,
-                    message = BaseHttpException(detail = ApiMessage.ROOM_CREATION_FAILED)
+                    message = BaseHttpResponse(detail = ApiMessage.ROOM_CREATION_FAILED)
                 )
             } catch (e: SerializationException) {
                 call.respond(
                     status = HttpStatusCode.NoContent,
-                    message = BaseHttpException(ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
+                    message = BaseHttpResponse(ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
                 )
             } catch (e: Exception) {
                 call.respond(
                     status = HttpStatusCode.FailedDependency,
-                    message = BaseHttpException(ApiMessage.UNKNOWN_EXCEPTION_MESSAGE)
+                    message = BaseHttpResponse(ApiMessage.UNKNOWN_EXCEPTION_MESSAGE)
                 )
             }
         }
