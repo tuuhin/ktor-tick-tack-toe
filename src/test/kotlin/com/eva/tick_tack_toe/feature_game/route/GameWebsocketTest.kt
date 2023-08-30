@@ -6,15 +6,14 @@ import com.eva.tick_tack_toe.feature_game.mapper.toDto
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import com.eva.tick_tack_toe.feature_game.utils.TestBoardCombinations
 import com.eva.tick_tack_toe.feature_room.dto.GamePlayerDto
+import com.eva.tick_tack_toe.setWebsocketConfig
 import com.eva.tick_tack_toe.utils.BoardSymbols
 import com.eva.tick_tack_toe.utils.ext.toBoardLayout
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
 import io.ktor.websocket.*
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -29,9 +28,7 @@ class GameWebsocketTest {
         var room: GameRoomDto? = null
 
         val socketClient = createClient {
-            install(WebSockets) {
-                contentConverter = KotlinxWebsocketSerializationConverter(Json)
-            }
+            setWebsocketConfig()
         }
 
         socketClient.webSocket(

@@ -1,89 +1,79 @@
 package com.eva.tick_tack_toe.feature_room
 
-import com.eva.tick_tack_toe.TestApiPaths
 import com.eva.tick_tack_toe.dto.BaseHttpResponse
-import com.eva.tick_tack_toe.feature_room.dto.CreateRoomSerializer
-import com.eva.tick_tack_toe.feature_room.dto.RoomSerializer
+import com.eva.tick_tack_toe.setNegotiationConfig
 import com.eva.tick_tack_toe.utils.constants.ApiMessage
 import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
+import io.ktor.client.plugins.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RoomRouteTests {
+    @AfterTest
+    fun stopApplication() {
+        stopKoin()
+    }
 
     @Test
     fun `test create room requests with rounds and check if the room is join-able or not`() = testApplication {
-        val newClient = createClient {
-            install(ContentNegotiation) {
-                json()
-            }
+        val testClient = createClient {
+            setNegotiationConfig()
         }
 
-        var roomIdReceived: String
+        val playerApi = PlayerApi(testClient)
 
-        newClient.post {
-            url {
-                host = "localhost"
-                port = 80
-                path(TestApiPaths.CREATE_ROOM_API_ROUTE)
-            }
-            headers { append(HttpHeaders.ContentType, ContentType.Application.Json) }
-            contentType(ContentType.Application.Json)
-            setBody(CreateRoomSerializer(rounds = 2))
-        }.apply {
-            assertEquals(status, HttpStatusCode.OK)
-            body<RoomSerializer>().apply {
-                assertEquals(rounds, 2)
-                assertEquals(room.length, generateNonce().length)
-                roomIdReceived = room
-            }
-        }
+        val createRoom = playerApi.createRoom(2)
+        assertEquals(createRoom.rounds, 2, "checking the number of rounds")
+        assertEquals(createRoom.room.length, 16, "room id is anonymous but will be always of length 16")
 
-        newClient.post {
-            url {
-                host = "localhost"
-                port = 80
-                path(TestApiPaths.CHECK_ROOM_API_ROUTE)
-            }
-            headers { append(HttpHeaders.ContentType, ContentType.Application.Json) }
-            contentType(ContentType.Application.Json)
-            setBody(RoomSerializer(room = roomIdReceived, rounds = 2))
-        }.apply {
-            assertEquals(status, HttpStatusCode.OK)
-            body<BaseHttpResponse>().apply {
-                assertEquals(detail, ApiMessage.ROOM_JOIN_ABLE_MESSAGE)
-            }
-        }
+        val roomIdReceived = createRoom.room
+
+        val verifyRoom = playerApi.checkRoom(roomIdReceived)
+
+        assertEquals(verifyRoom.roomSerializer.rounds, 2, "checking the number of rounds")
+        assertEquals(verifyRoom.message, ApiMessage.ROOM_JOIN_ABLE_MESSAGE, message = "Room is join-able or not")
+
     }
 
     @Test
     fun `test create room requests without mentioning rounds`() = testApplication {
-        val newClient = createClient {
-            install(ContentNegotiation) {
-                json()
-            }
+        val testClient = createClient {
+            setNegotiationConfig()
         }
+        val player = PlayerApi(testClient)
+        val room = player.createRoom()
+        assertEquals(room.rounds, 1, "checking the number of rounds")
+        assertEquals(room.room.length, 16, "room id is anonymous but will be always of length 16")
+    }
 
-        val response = newClient.post {
-            url {
-                host = "localhost"
-                port = 80
-                path(TestApiPaths.CREATE_ROOM_API_ROUTE)
-            }
-            headers { append(HttpHeaders.ContentType, ContentType.Application.Json) }
-            contentType(ContentType.Application.Json)
-            setBody(CreateRoomSerializer())
+    @Test
+    fun `test a random room which is not present testing room not found exception`() = testApplication {
+        val testClient = createClient {
+            setNegotiationConfig()
         }
-        assertEquals(response.status, HttpStatusCode.OK)
+        val playerApi = PlayerApi(testClient)
+        val roomId = generateNonce()
+        try {
+            playerApi.checkRoom(roomId)
+        } catch (e: ClientRequestException) {
+            val clientException = e.response.body<BaseHttpResponse>()
 
-        val responseBody = response.body<RoomSerializer>()
-        assertEquals(responseBody.rounds, 1)
-        assertEquals(responseBody.room.length, generateNonce().length)
+            assertEquals(
+                HttpStatusCode.BadRequest,
+                e.response.status,
+                message = "Checking the status code to be same or not"
+            )
+
+            assertEquals(
+                ApiMessage.ROOM_KEY_DO_NOT_EXITS,
+                clientException.detail,
+                message = "Checking the client exception is room not found"
+            )
+        }
     }
 }
