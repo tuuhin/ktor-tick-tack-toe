@@ -1,8 +1,12 @@
 package com.eva.tick_tack_toe.feature_game.dto
 
-import kotlinx.serialization.*
+import com.eva.tick_tack_toe.feature_game.dto.serializer.ServerSendEventsSerializer
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@Serializable(ServerEventsSerializer::class)
+@Serializable(ServerSendEventsSerializer::class)
 @OptIn(ExperimentalSerializationApi::class)
 sealed interface ServerSendEventsDto {
     @Serializable
@@ -14,6 +18,6 @@ sealed interface ServerSendEventsDto {
     @Serializable
     data class ServerGameState(
         @EncodeDefault @SerialName("type") val type: String = ServerSendEventTypes.GAME_STATE_TYPE.type,
-        @SerialName("result") val state: BoardGameSendDataDto
+        @SerialName("result") val state: GameSendDataDto
     ) : ServerSendEventsDto
 }

@@ -4,8 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class BoardGameReceiveDataDto(
-    @SerialName("player_symbol") val symbol: Char,
+data class GameReceiveDataDto(
+    @SerialName("client_id") val clientId: String,
     @SerialName("position") val boardPosition: BoardPositionDto,
-    @SerialName("client_id") val clientId: String
 )

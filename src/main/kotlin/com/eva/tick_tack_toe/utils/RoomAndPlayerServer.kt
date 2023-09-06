@@ -127,5 +127,4 @@ class RoomAndPlayerServer {
         .find { rooms ->
             rooms.players.any { player -> player.clientId == clientId }
         } ?: throw PlayerRoomNotFoundException()
-
 }

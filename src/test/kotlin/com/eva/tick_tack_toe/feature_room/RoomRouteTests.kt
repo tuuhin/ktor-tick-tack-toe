@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RoomRouteTests {
+
     @AfterTest
     fun stopApplication() {
         stopKoin()

@@ -1,7 +1,7 @@
 package com.eva.tick_tack_toe.feature_game.game
 
-import com.eva.tick_tack_toe.feature_game.dto.BoardGameReceiveDataDto
-import com.eva.tick_tack_toe.feature_game.dto.BoardGameSendDataDto
+import com.eva.tick_tack_toe.feature_game.dto.GameSendDataDto
+import com.eva.tick_tack_toe.feature_game.dto.ServerReceiveEvents
 import com.eva.tick_tack_toe.feature_game.dto.ServerSendEventsDto
 import com.eva.tick_tack_toe.feature_game.mapper.toDtoAsFlow
 import com.eva.tick_tack_toe.feature_game.mapper.toModel
@@ -71,13 +71,7 @@ class RealtimeBoardGame(
 
         playerRoom = playerServer.getRoomFromClientId(clientId)
 
-        playerRoom.players.forEach { gamePlayer ->
-            if (gamePlayer != player)
-                gamePlayer.session.sendSerialized(
-                    ServerSendEventsDto
-                        .ServerMessage(message = "${player.userName} joined the stream")
-                )
-        }
+        sendWelcomeMessage(players = playerRoom.players, currentPlayer = player, message = "Joined the Game")
 
         return player
     }
@@ -85,38 +79,43 @@ class RealtimeBoardGame(
     /**
      * Receives the events from the stream and updates the board accordingly
      */
-    suspend fun onReceiveEvents(session: WebSocketServerSession) {
-        session.incoming.consumeEach { frame ->
-            (frame as? Frame.Text)
-                ?.let { frameText ->
-                    val readText = frameText.readText()
-                    val receiveDataDto = Json.decodeFromString<BoardGameReceiveDataDto>(readText)
-                    playerRoom.board.updateBoardState(
-                        position = receiveDataDto.boardPosition.toModel(),
-                        playerSymbols = BoardSymbols.fromSymbol(receiveDataDto.symbol)
-                    )
+    suspend fun onReceiveEvents(session: WebSocketServerSession) = session.incoming.consumeEach { frame ->
+        (frame as? Frame.Text)?.let { frameText ->
+
+            val readText = frameText.readText()
+            when (val receiveData = Json.decodeFromString<ServerReceiveEvents>(readText)) {
+
+                is ServerReceiveEvents.ReceiveGameData -> {
+                    val data = receiveData.data
+                    playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
+                        playerRoom.board.updateBoardState(
+                            position = data.boardPosition.toModel(),
+                            playerSymbols = player.symbol
+                        )
+                    }
                 }
+
+            }
         }
     }
+
 
     /**
      * Broadcast the events to the stream
      */
-    fun broadCastGameState(scope: CoroutineScope) {
-        playerRoom.toDtoAsFlow()
-            .onEach { board ->
-                val boardGame = BoardGameSendDataDto(
-                    playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
-                    playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
-                    board = board,
-                    isAllPlayerJoined = playerRoom.players.size >= 2
-                )
-                playerRoom.players.forEach { player ->
-                    player.session
-                        .sendSerialized(ServerSendEventsDto.ServerGameState(state = boardGame))
-                }
-            }.launchIn(scope)
-    }
+    fun broadCastGameState(scope: CoroutineScope) = playerRoom.toDtoAsFlow()
+        .onEach { board ->
+            val boardGame = GameSendDataDto(
+                playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
+                playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
+                board = board,
+                isAllPlayerJoined = playerRoom.players.size >= 2
+            )
+            playerRoom.players.forEach { player ->
+                player.session
+                    .sendSerialized(ServerSendEventsDto.ServerGameState(state = boardGame))
+            }
+        }.launchIn(scope)
 
 
     /**
@@ -125,13 +124,29 @@ class RealtimeBoardGame(
      */
     suspend fun onDisconnect(player: GamePlayerModel) {
 
-        playerServer.removePlayerFromRoom(player)
+        playerServer.removePlayerFromRoom(player = player)
 
-        playerRoom.players.forEach { gamePlayer ->
-            if (gamePlayer != player)
+        sendWelcomeMessage(players = playerRoom.players, currentPlayer = player, message = "PLayer left the room")
+
+    }
+
+    /**
+     * A helper function to send a message to the end user
+     * @param players  List of [GamePlayerModel]
+     * @param currentPlayer [GamePlayerModel]
+     * @param message  An associated [String] message
+     */
+
+    private suspend fun sendWelcomeMessage(
+        players: List<GamePlayerModel>,
+        currentPlayer: GamePlayerModel,
+        message: String = ""
+    ) {
+        players.forEach { gamePlayer ->
+            if (gamePlayer != currentPlayer)
                 gamePlayer.session.sendSerialized(
                     ServerSendEventsDto
-                        .ServerMessage(message = "${player.userName} left the game stream")
+                        .ServerMessage(message = "${currentPlayer.userName}: $message")
                 )
         }
     }

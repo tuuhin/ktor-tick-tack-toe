@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
-data class BoardGameSendDataDto(
+data class GameSendDataDto(
 
     @EncodeDefault
     @SerialName("x_player")

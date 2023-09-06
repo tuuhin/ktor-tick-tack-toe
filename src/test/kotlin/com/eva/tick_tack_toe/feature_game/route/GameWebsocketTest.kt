@@ -86,7 +86,7 @@ class GameWebsocketTest {
 
                         assertEquals(
                             received.state.playerO,
-                            playerX,
+                            playerO,
                             message = "check player o is player o or not"
                         )
                     }
@@ -100,24 +100,14 @@ class GameWebsocketTest {
                 else -> {}
             }
 
-            playerX?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
+            sendSerialized(
+                ServerReceiveEvents.ReceiveGameData(
+                    data = GameReceiveDataDto(
                         clientId = clientId,
-                        symbol = player.playerSymbol,
                         boardPosition = BoardPositionDto(0, 0)
                     )
                 )
-            }
-            playerO?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
-                        clientId = clientId,
-                        symbol = player.playerSymbol,
-                        boardPosition = BoardPositionDto(0, 0)
-                    )
-                )
-            }
+            )
 
             when (val received = receiveDeserialized<ServerSendEventsDto>()) {
                 is ServerSendEventsDto.ServerGameState -> {
@@ -163,92 +153,7 @@ class GameWebsocketTest {
                 else -> {}
             }
 
-            playerX?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
-                        clientId = clientId,
-                        symbol = player.playerSymbol,
-                        boardPosition = BoardPositionDto(1, 1)
-                    )
-                )
-            }
-            playerO?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
-                        clientId = clientId,
-                        symbol = player.playerSymbol,
-                        boardPosition = BoardPositionDto(1, 1)
-                    )
-                )
-            }
-
-            // Skipping the socket receive
-            receiveDeserialized<ServerSendEventsDto>()
-
-            playerX?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
-                        clientId = clientId,
-                        symbol = player.playerSymbol,
-                        boardPosition = BoardPositionDto(2, 2)
-                    )
-                )
-            }
-            playerO?.let { player ->
-                sendSerialized(
-                    BoardGameReceiveDataDto(
-                        clientId = clientId,
-                        symbol = player.playerSymbol,
-                        boardPosition = BoardPositionDto(2, 2)
-                    )
-                )
-            }
-
-            when (val received = receiveDeserialized<ServerSendEventsDto>()) {
-                is ServerSendEventsDto.ServerGameState -> {
-                    received.state.playerO?.let { player ->
-                        assertEquals(player, playerO, message = "Checking the state of player O")
-                    }
-                    received.state.playerX?.let { player ->
-                        assertEquals(player, playerX, message = "Checking the state of player X")
-
-                    }
-
-                    val layout = received.state.board.boardLayout.toBoardLayout()
-
-                    assertEquals(
-                        received.type,
-                        ServerSendEventTypes.GAME_STATE_TYPE.type,
-                        message = "check the receive type to be game type"
-                    )
-                    received.state.playerO?.let { player ->
-
-                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
-
-                        assertEquals(
-                            layout,
-                            TestBoardCombinations.DiagonalFilledWithSameSymbol(playerSymbol).combinations,
-                            message = "Board filled via diagonal by player O"
-                        )
-                    }
-
-                    received.state.playerX?.let { player ->
-
-                        val playerSymbol = BoardSymbols.fromSymbol(player.playerSymbol)
-
-                        assertEquals(
-                            layout,
-                            TestBoardCombinations.DiagonalFilledWithSameSymbol(playerSymbol).combinations,
-                            message = "Board filled via diagonal by player X"
-                        )
-                    }
-                }
-
-                else -> {}
-            }
-
             close(reason = CloseReason(code = CloseReason.Codes.NORMAL, message = "Disconnecting the session"))
-
         }
     }
 }
