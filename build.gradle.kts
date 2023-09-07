@@ -1,6 +1,4 @@
-import io.ktor.plugin.features.DockerPortMapping
-import io.ktor.plugin.features.DockerPortMappingProtocol
-import io.ktor.plugin.features.JreVersion
+import io.ktor.plugin.features.*
 
 plugins {
     kotlin("jvm") version "1.8.20"
@@ -50,6 +48,7 @@ dependencies {
     implementation(libs.server.netty)
     implementation(libs.server.logger)
     implementation(libs.ktor.status.pages)
+    implementation(libs.ktor.forwarded.headers)
     //kotlin
     implementation(libs.kotlin.immutable)
     //koin-di
