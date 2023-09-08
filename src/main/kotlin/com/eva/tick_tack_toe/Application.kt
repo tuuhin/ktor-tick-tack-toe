@@ -12,7 +12,6 @@ fun Application.module() {
     install(ForwardedHeaders)
     configureStatusPages()
     configureKoin()
-    configureSecurity()
     configureMonitoring()
     configureSockets()
     configureRouting()
