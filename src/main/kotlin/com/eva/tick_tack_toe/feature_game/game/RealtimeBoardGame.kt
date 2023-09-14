@@ -12,10 +12,7 @@ import com.eva.tick_tack_toe.utils.BoardSymbols
 import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.Json
 
 class RealtimeBoardGame(
@@ -25,10 +22,10 @@ class RealtimeBoardGame(
 
     /**
      * Runs when the players connect to play the game with specific room
-     * @param session : [WebSocketSession]
-     * @param userName : Username for the player
-     * @param clientId : Unique Client Id for the user
-     * @param room : Room id for the game
+     * @param session  [WebSocketSession]
+     * @param userName  Username for the player
+     * @param clientId  Unique Client Id for the user
+     * @param room  Room id for the game
      * @return The newly created [GamePlayerModel]
      */
     suspend fun onConnect(
@@ -42,22 +39,20 @@ class RealtimeBoardGame(
         playerServer.addPlayersToRoom(room, player)
         playerRoom = playerServer.getRoomFromClientId(clientId)
 
-        playerRoom.players.forEach { gamePlayer ->
-            if (gamePlayer != player)
-                gamePlayer.session.sendSerialized(
-                    ServerSendEventsDto
-                        .ServerMessage(message = "${player.userName} joined the stream")
-                )
-        }
+        sendAssociatedMessage(
+            players = playerRoom.players,
+            currentPlayer = player,
+            message = "${player.userName}: Joined the Game"
+        )
 
         return player
     }
 
     /**
      * Runs when the players connect to play an anonymous game
-     * @param session : [WebSocketSession]
-     * @param userName : Username for the player
-     * @param clientId : Unique Client Id for the user
+     * @param session  [WebSocketSession]
+     * @param userName  Username for the player
+     * @param clientId  Unique Client Id for the user
      * @return The newly created [GamePlayerModel]
      */
     suspend fun onConnect(
@@ -71,7 +66,11 @@ class RealtimeBoardGame(
 
         playerRoom = playerServer.getRoomFromClientId(clientId)
 
-        sendWelcomeMessage(players = playerRoom.players, currentPlayer = player, message = "Joined the Game")
+        sendAssociatedMessage(
+            players = playerRoom.players,
+            currentPlayer = player,
+            message = "${player.userName}: Joined the Game"
+        )
 
         return player
     }
@@ -103,8 +102,8 @@ class RealtimeBoardGame(
     /**
      * Broadcast the events to the stream
      */
-    fun broadCastGameState(scope: CoroutineScope) = playerRoom.toDtoAsFlow()
-        .onEach { board ->
+    suspend fun broadCastGameState() = playerRoom.toDtoAsFlow()
+        .collect { board ->
             val boardGame = GameSendDataDto(
                 playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
                 playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
@@ -115,38 +114,39 @@ class RealtimeBoardGame(
                 player.session
                     .sendSerialized(ServerSendEventsDto.ServerGameState(state = boardGame))
             }
-        }.launchIn(scope)
-
+        }
 
     /**
-     * Runs when the player want to disconnect from the session or the session is complete
-     * @param player : [GamePlayerModel] the player itself
+     * Runs when the player wants to disconnect from the session or the session is complete
+     * @param player : [GamePlayerModel] the player itself which is to be disconnected
      */
     suspend fun onDisconnect(player: GamePlayerModel) {
 
         playerServer.removePlayerFromRoom(player = player)
 
-        sendWelcomeMessage(players = playerRoom.players, currentPlayer = player, message = "PLayer left the room")
-
+        sendAssociatedMessage(
+            players = playerRoom.players,
+            currentPlayer = player,
+            message = "${player.userName} :Player left the room"
+        )
     }
 
     /**
-     * A helper function to send a message to the end user
-     * @param players  List of [GamePlayerModel]
-     * @param currentPlayer [GamePlayerModel]
-     * @param message  An associated [String] message
+     * A helper function to send an associated message to the end user
+     * @param players  List of [GamePlayerModel] to which the message to be sent
+     * @param currentPlayer [GamePlayerModel] which sends the message to the other users
+     * @param message  An associated [String] message to be sent by the player.
      */
-
-    private suspend fun sendWelcomeMessage(
+    private suspend fun sendAssociatedMessage(
         players: List<GamePlayerModel>,
         currentPlayer: GamePlayerModel,
-        message: String = ""
+        message: String
     ) {
         players.forEach { gamePlayer ->
             if (gamePlayer != currentPlayer)
                 gamePlayer.session.sendSerialized(
                     ServerSendEventsDto
-                        .ServerMessage(message = "${currentPlayer.userName}: $message")
+                        .ServerMessage(message = message)
                 )
         }
     }

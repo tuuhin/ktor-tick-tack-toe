@@ -17,9 +17,12 @@ class RoomAndPlayerServer {
      */
     private val playerLogger = KtorSimpleLogger("PLAYER_CONNECTION_LOGGER")
 
+
+    private val lock = Any()
+
     /**
      * A [ConcurrentHashMap] to hold the Room and the Game Models.
-     * When a player creates a room a roomId is generated that is treated as the key.
+     * When a player creates a room, a roomId is generated that is treated as the key.
      * But there is also an option to play the game without creating the room.
      * In that case the server will spin up a random roomId, and [GameRoomModel.isAnonymous]
      * flags shows if this an anonymous room
@@ -27,10 +30,10 @@ class RoomAndPlayerServer {
     val gameRooms = ConcurrentHashMap<String, GameRoomModel>()
 
     /**
-     * On creating a new room via post request.
+     * On creating a new room via post-request.
      * A new room will be prepared which latter can be used by the players
      * @param board  No of boards for the game
-     * @param isAnonymous  Is the room is anonymous
+     * @param isAnonymous  Is the room being anonymous?
      * @return The newly created [GamePlayerModel] instance
      */
     fun createGameRoom(board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
@@ -43,10 +46,10 @@ class RoomAndPlayerServer {
     }
 
     /**
-     * Adds a player to A anonymous room,if there is no room its creates a new room and then adds the new user
+     * Adds a player to an anonymous room,if there is no room its creates a new room and then adds the new user
      * @param player A [GamePlayerModel] representing the new player
      */
-    fun addAnonymousPlayerToRoom(player: GamePlayerModel) {
+    fun addAnonymousPlayerToRoom(player: GamePlayerModel) = synchronized(lock) {
         val isAnonymousRoomAvailable = gameRooms.values.find { it.isAnonymous && it.players.size < 2 }
         isAnonymousRoomAvailable?.let { model ->
             val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
@@ -55,8 +58,8 @@ class RoomAndPlayerServer {
                 symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
             )
 
-            val players = when (model.players.size) {
-                0, 1 -> model.players + playerWithSymbol
+            val players = when {
+                model.players.size < 2 -> model.players + playerWithSymbol
                 else -> model.players
             }
             gameRooms[model.room] = model.copy(players = players)
@@ -69,12 +72,13 @@ class RoomAndPlayerServer {
         }
     }
 
+
     /**
-     * Adds the new  player to a given room,also pick a proper symbol according to available choices
+     * Adds the new player to a given room,also pick a proper symbol according to available choices
      * @param room RoomId
      * @param player A [GamePlayerModel] instance representing the new player
      */
-    fun addPlayersToRoom(room: String, player: GamePlayerModel) {
+    fun addPlayersToRoom(room: String, player: GamePlayerModel) = synchronized(lock) {
         gameRooms[room]?.let { model ->
             val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
 
@@ -82,20 +86,21 @@ class RoomAndPlayerServer {
                 symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
             )
 
-            val players = when (model.players.size) {
-                0, 1 -> model.players + playerWithSymbol
+            val players = when {
+                model.players.size < 2 -> model.players + playerWithSymbol
                 else -> model.players
             }
             gameRooms[room] = model.copy(players = players)
         } ?: playerLogger.warn("Provided room not found")
     }
 
+
     /**
      * Removes the player from the game room, and if the game room is found to be empty also deletes
      * the room
      * @param player The instance of [GamePlayerModel] to be removed
      */
-    fun removePlayerFromRoom(player: GamePlayerModel) {
+    fun removePlayerFromRoom(player: GamePlayerModel) = synchronized(lock) {
         val playerRoom = getRoomFromClientId(player.clientId)
         gameRooms[playerRoom.room]?.let { model ->
             val currentRoomPlayers = model.players.toMutableList()
@@ -103,9 +108,9 @@ class RoomAndPlayerServer {
             if (currentRoomPlayers.size == 0) {
                 playerLogger.info("DELETING THE ROOM WITH ID :${playerRoom.room}")
                 deleteRoom(playerRoom.room)
-                return
-            }
-            gameRooms[playerRoom.room] = model.copy(players = currentRoomPlayers)
+
+            } else
+                gameRooms[playerRoom.room] = model.copy(players = currentRoomPlayers)
         }
     }
 
@@ -113,7 +118,7 @@ class RoomAndPlayerServer {
     /**
      * Removes the Game room.
      * Should be only used when the game is over otherwise the game data will be lost
-     * @param room : Room to be removed
+     * @param room  Room to be removed
      * @return the deleted instance of [GameRoomModel]
      */
     private fun deleteRoom(room: String) = gameRooms.remove(room)

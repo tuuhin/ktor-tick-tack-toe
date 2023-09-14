@@ -1,11 +1,14 @@
 package com.eva.tick_tack_toe.feature_game.game
 
-import com.eva.tick_tack_toe.utils.ext.toBoardPositions
 import com.eva.tick_tack_toe.feature_game.models.BoardPosition
 import com.eva.tick_tack_toe.feature_game.models.GameState
 import com.eva.tick_tack_toe.utils.BoardSymbols
 import com.eva.tick_tack_toe.utils.BoardWinningCombinations
-import kotlinx.coroutines.flow.*
+import com.eva.tick_tack_toe.utils.ext.toBoardPositions
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 
 class BoardGame {
 
@@ -46,12 +49,11 @@ class BoardGame {
         }
     }
 
-    fun prepareNewBoard() =
-        _gameState.updateAndGet {
-            it.copy(
-                boardState = GameState.emptyBoardState(),
-                winnerSymbol = null,
-                isDraw = false
-            )
-        }
+    fun prepareNewBoard() = _gameState.updateAndGet {
+        it.copy(
+            boardState = GameState.emptyBoardState(),
+            winnerSymbol = null,
+            isDraw = false
+        )
+    }
 }
