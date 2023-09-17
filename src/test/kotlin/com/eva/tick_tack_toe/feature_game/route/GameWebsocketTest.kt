@@ -63,6 +63,7 @@ class GameWebsocketTest {
                             isAnonymous = true
                         ).toDto()
 
+
                         assertEquals(
                             received.state.playerX,
                             playerX,

@@ -14,7 +14,6 @@ import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 
 class RealtimeBoardGame(
@@ -96,11 +95,11 @@ class RealtimeBoardGame(
         if (!playerRoom.game.canUpdateBoard) {
             playerRoom.updatePlayerPoints()
             sendServerMessage(players = playerRoom.players, message = "Moving to next round")
-
             playerRoom.game.prepareNewBoard()
 
+        }
 
-        } else if (playerRoom.isReady) {
+        if (playerRoom.game.canUpdateBoard && playerRoom.isReady) {
             playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
                 playerRoom.game.updateBoardState(
                     position = data.boardPosition.toModel(),

@@ -44,6 +44,4 @@ data class GameRoomModel(
             )
         }
     }
-
-
 }
