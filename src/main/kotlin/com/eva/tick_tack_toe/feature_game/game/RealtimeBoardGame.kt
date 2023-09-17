@@ -1,5 +1,6 @@
 package com.eva.tick_tack_toe.feature_game.game
 
+import com.eva.tick_tack_toe.feature_game.dto.GameReceiveDataDto
 import com.eva.tick_tack_toe.feature_game.dto.GameSendDataDto
 import com.eva.tick_tack_toe.feature_game.dto.ServerReceiveEvents
 import com.eva.tick_tack_toe.feature_game.dto.ServerSendEventsDto
@@ -13,6 +14,7 @@ import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 
 class RealtimeBoardGame(
@@ -84,16 +86,26 @@ class RealtimeBoardGame(
             val readText = frameText.readText()
             when (val receiveData = Json.decodeFromString<ServerReceiveEvents>(readText)) {
 
-                is ServerReceiveEvents.ReceiveGameData -> {
-                    val data = receiveData.data
-                    playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
-                        playerRoom.board.updateBoardState(
-                            position = data.boardPosition.toModel(),
-                            playerSymbols = player.symbol
-                        )
-                    }
-                }
+                is ServerReceiveEvents.ReceiveGameData -> onReceiveGameData(receiveData.data)
 
+            }
+        }
+    }
+
+    private suspend fun onReceiveGameData(data: GameReceiveDataDto) {
+        if (!playerRoom.game.canUpdateBoard) {
+            playerRoom.updatePlayerPoints()
+            sendServerMessage(players = playerRoom.players, message = "Moving to next round")
+
+            playerRoom.game.prepareNewBoard()
+
+
+        } else if (playerRoom.isReady) {
+            playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
+                playerRoom.game.updateBoardState(
+                    position = data.boardPosition.toModel(),
+                    playerSymbols = player.symbol
+                )
             }
         }
     }
@@ -107,8 +119,7 @@ class RealtimeBoardGame(
             val boardGame = GameSendDataDto(
                 playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
                 playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
-                board = board,
-                isAllPlayerJoined = playerRoom.players.size >= 2
+                board = board
             )
             playerRoom.players.forEach { player ->
                 player.session
@@ -141,13 +152,22 @@ class RealtimeBoardGame(
         players: List<GamePlayerModel>,
         currentPlayer: GamePlayerModel,
         message: String
-    ) {
-        players.forEach { gamePlayer ->
-            if (gamePlayer != currentPlayer)
-                gamePlayer.session.sendSerialized(
-                    ServerSendEventsDto
-                        .ServerMessage(message = message)
-                )
-        }
+    ) = players.forEach { gamePlayer ->
+        if (gamePlayer != currentPlayer)
+            gamePlayer.session.sendSerialized(
+                ServerSendEventsDto
+                    .ServerMessage(message = message)
+            )
     }
+
+
+    private suspend fun sendServerMessage(
+        players: List<GamePlayerModel>,
+        message: String
+    ) = players.forEach { player ->
+        player.session.sendSerialized(
+            ServerSendEventsDto.ServerMessage(message = message)
+        )
+    }
+
 }

@@ -2,15 +2,14 @@ package com.eva.tick_tack_toe.utils
 
 import com.eva.tick_tack_toe.feature_game.models.BoardPosition
 
-
 /**
- * All the available Winning Combinations ie, Horizontal,Vertical and Diagonal.
+ * All the available Winning Combinations i.e., Horizontal, Vertical and Diagonal.
  */
 sealed class BoardWinningCombinations(
     val combinations: List<List<BoardPosition>>
 ) {
     /**
-     * Includes All the Horizontal or Row Based Combinations
+     * Includes All the Horizontal or Row-Based Combinations
      */
     data object HorizontalCombinations : BoardWinningCombinations(
         combinations = List(3) { x ->
@@ -19,7 +18,7 @@ sealed class BoardWinningCombinations(
     )
 
     /**
-     * Includes All the Vertical or Column Based Combinations
+     * Includes All the Vertical or Column-Based Combinations
      */
     data object VerticalCombinations : BoardWinningCombinations(
         combinations = List(3) { x ->
@@ -37,4 +36,11 @@ sealed class BoardWinningCombinations(
         )
     )
 
+    companion object {
+        /**
+         * List of winning combinations; Rather, then computing the results, multiple times the winning combinations
+         * are only checked.
+         */
+        val WINNING_COMBINATIONS = listOf(HorizontalCombinations, VerticalCombinations, DiagonalCombinations)
+    }
 }

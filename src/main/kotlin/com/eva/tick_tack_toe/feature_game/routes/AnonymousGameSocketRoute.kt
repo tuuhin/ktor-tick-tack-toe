@@ -9,9 +9,8 @@ import io.ktor.serialization.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import org.koin.ktor.ext.inject
 
 /**
@@ -35,9 +34,10 @@ fun Route.anonymousGameSocketRoute() = webSocket(path = ApiPaths.GAME_SOCKET_PAT
         )
 
         try {
-            val broadcast = launch(coroutineContext) { boardGame.broadCastGameState() }
 
-            val receive = launch(coroutineContext) { boardGame.onReceiveEvents(this@webSocket) }
+            val broadcast = launch(Dispatchers.IO) { boardGame.broadCastGameState() }
+
+            val receive = launch(Dispatchers.IO) { boardGame.onReceiveEvents(session = this@webSocket) }
 
             val jobs = listOf(broadcast, receive)
             jobs.joinAll()
@@ -46,10 +46,12 @@ fun Route.anonymousGameSocketRoute() = webSocket(path = ApiPaths.GAME_SOCKET_PAT
             e.printStackTrace()
             Logger.error(e.localizedMessage)
 
+        } catch (e: CancellationException) {
+            e.printStackTrace()
+            Logger.error(e.localizedMessage)
         } catch (e: WebsocketDeserializeException) {
             e.printStackTrace()
             Logger.error(e.localizedMessage)
-
         } catch (e: Exception) {
             e.printStackTrace()
             Logger.error(e.localizedMessage)

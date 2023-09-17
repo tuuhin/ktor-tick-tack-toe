@@ -5,20 +5,24 @@ import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import kotlinx.coroutines.flow.*
 
 fun GameRoomModel.toDto() = GameRoomDto(
-    boardLayout = board.gameState.value.boardState.map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
+    boardLayout = game.board.boardState
+        .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
     boardCount = boardCount,
-    isAnonymous = isAnonymous,
-    room = room
+    room = room,
+    winningSymbols = game.board.winnerSymbol?.symbol,
+    isDraw = game.board.isDraw,
+    isReady = isReady
 )
 
-fun GameRoomModel.toDtoAsFlow(): Flow<GameRoomDto> {
-    return board.gameState
-        .map { state ->
-            GameRoomDto(
-                boardLayout = state.boardState.map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
-                boardCount = boardCount,
-                isAnonymous = isAnonymous,
-                room = room
-            )
-        }
-}
+fun GameRoomModel.toDtoAsFlow(): Flow<GameRoomDto> = game.gameState
+    .map { state ->
+        GameRoomDto(
+            boardLayout = state.boardState
+                .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
+            boardCount = boardCount,
+            room = room,
+            winningSymbols = state.winnerSymbol?.symbol,
+            isDraw = state.isDraw,
+            isReady = isReady
+        )
+    }

@@ -10,17 +10,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 
+
+/**
+ * Represents the Actual Game
+ */
 class BoardGame {
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState = _gameState.asStateFlow()
 
-    private val winningCombination: List<BoardWinningCombinations> = listOf(
-        BoardWinningCombinations.HorizontalCombinations,
-        BoardWinningCombinations.VerticalCombinations,
-        BoardWinningCombinations.DiagonalCombinations
-    )
+    val board: GameState
+        get() = gameState.value
 
+    val canUpdateBoard: Boolean
+        get() = gameState.value.winnerSymbol != null || gameState.value.isDraw
+
+    /**
+     * Updates the board state according to the [BoardPosition] and [BoardSymbols] received
+     */
     fun updateBoardState(position: BoardPosition, playerSymbols: BoardSymbols) {
         val updatedBoard = _gameState.value.boardState
             .mapIndexed { rowIndex, rowList ->
@@ -31,11 +38,12 @@ class BoardGame {
                 }
             }
 
-        val hasWinningCombination = winningCombination.any { wComb ->
-            wComb.combinations.any { comb ->
-                comb == updatedBoard.toBoardPositions(playerSymbols)
+        val hasWinningCombination = BoardWinningCombinations.WINNING_COMBINATIONS
+            .any { wComb ->
+                wComb.combinations.any { comb ->
+                    comb == updatedBoard.toBoardPositions(playerSymbols)
+                }
             }
-        }
 
         val allFilled = updatedBoard.all { boardRow ->
             boardRow.all { it != BoardSymbols.Blank }
@@ -49,6 +57,10 @@ class BoardGame {
         }
     }
 
+
+    /**
+     * Prepares a new board when there is a winner or there is a draw
+     */
     fun prepareNewBoard() = _gameState.updateAndGet {
         it.copy(
             boardState = GameState.emptyBoardState(),

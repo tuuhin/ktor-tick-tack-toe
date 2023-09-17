@@ -21,6 +21,4 @@ data class GameSendDataDto(
     @SerialName("room")
     val board: GameRoomDto,
 
-    @SerialName("is_ready")
-    val isAllPlayerJoined: Boolean
 )
