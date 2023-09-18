@@ -23,7 +23,7 @@ class BoardGame {
         get() = gameState.value
 
     val canUpdateBoard: Boolean
-        get() = gameState.value.winnerSymbol != null || gameState.value.isDraw
+        get() = gameState.value.winnerSymbol != null || !gameState.value.isDraw
 
     /**
      * Updates the board state according to the [BoardPosition] and [BoardSymbols] received

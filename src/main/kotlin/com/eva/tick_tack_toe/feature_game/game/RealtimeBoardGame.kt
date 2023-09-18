@@ -78,6 +78,7 @@ class RealtimeBoardGame(
 
     /**
      * Receives the events from the stream and updates the board accordingly
+     * @param session [WebSocketServerSession] to which incoming request are listened to.
      */
     suspend fun onReceiveEvents(session: WebSocketServerSession) = session.incoming.consumeEach { frame ->
         (frame as? Frame.Text)?.let { frameText ->
@@ -91,6 +92,10 @@ class RealtimeBoardGame(
         }
     }
 
+    /**
+     * When there is a [ServerReceiveEvents.ReceiveGameData] on the [ServerReceiveEvents] interface the function
+     * implements the working of the board.
+     */
     private suspend fun onReceiveGameData(data: GameReceiveDataDto) {
         if (!playerRoom.game.canUpdateBoard) {
             playerRoom.updatePlayerPoints()
