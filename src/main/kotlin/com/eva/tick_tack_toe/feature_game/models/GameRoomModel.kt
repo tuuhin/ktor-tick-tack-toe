@@ -3,7 +3,7 @@ package com.eva.tick_tack_toe.feature_game.models
 import com.eva.tick_tack_toe.feature_game.game.BoardGame
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import com.eva.tick_tack_toe.utils.BoardSymbols
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.update
 
 
@@ -15,16 +15,22 @@ import kotlinx.coroutines.flow.update
  * @property boardCount How many times will the game be played between the users until its off.
  * @property isAnonymous denotes if the room created anonymously or not
  * @property isReady Marks the room to be ready to play
+ * @property winnerSymbol Marks the round as complete and shows the current winner symbol
+ * @property isDraw Marks the round as complete and shows if the board is drawn
  */
 data class GameRoomModel(
     val room: String,
-    val players: List<GamePlayerModel> = emptyList(),
     val game: BoardGame = BoardGame(),
     val boardCount: Int = 1,
-    val isAnonymous: Boolean,
+    val isAnonymous: Boolean = true,
 ) {
+    private val _players: MutableList<GamePlayerModel> = mutableListOf()
+
+    val players: List<GamePlayerModel>
+        get() = _players.toImmutableList()
+
     val isReady: Boolean
-        get() = players.size >= 2
+        get() = _players.size == 2
 
     private val winnerSymbol: BoardSymbols?
         get() = game.board.winnerSymbol
@@ -36,12 +42,33 @@ data class GameRoomModel(
      * Updates the player points according to the [winnerSymbol] and [isDraw] state
      */
     fun updatePlayerPoints() = players.forEach { player ->
-        player.pointsFlow.update { gamePoints ->
-            gamePoints.copy(
-                winCount = gamePoints.winCount + if (player.symbol == game.board.winnerSymbol) 1 else 0,
-                drawCount = gamePoints.drawCount + if (game.board.isDraw) 1 else 0,
-                looseCount = gamePoints.winCount + if (player.symbol != game.board.winnerSymbol) 1 else 0,
+        player.pointsFlow.update { points ->
+            points.copy(
+                winCount = points.winCount + if (player.symbol == game.board.winnerSymbol) 1 else 0,
+                drawCount = points.drawCount + if (game.board.isDraw) 1 else 0,
+                looseCount = points.winCount + if (player.symbol != game.board.winnerSymbol) 1 else 0,
             )
         }
     }
+
+    /**
+     * Adds a new player to the player list
+     * @param player The instance of [GamePlayerModel] to be added
+     * @return [Boolean] if the result is successful
+     */
+    fun addPlayersToTheRoom(player: GamePlayerModel) = _players.add(player)
+
+    /**
+     * Removes the player from the player list
+     * @param player The instance of the player to be removed
+     * @return [Boolean] if the result is successful
+     */
+    fun removePlayersFromTheRoom(player: GamePlayerModel) = _players.remove(player)
+
+
+    /**
+     * Clears the old board and create a new one
+     */
+    fun clearAndCreateNewRoom() = game.prepareNewBoard()
+
 }

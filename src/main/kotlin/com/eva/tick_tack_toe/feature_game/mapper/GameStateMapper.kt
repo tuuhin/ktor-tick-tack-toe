@@ -5,7 +5,7 @@ import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import kotlinx.coroutines.flow.*
 
 fun GameRoomModel.toDto() = GameRoomDto(
-    boardLayout = game.board.boardState
+    boardLayout = game.board.face
         .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
     boardCount = boardCount,
     room = room,
@@ -17,7 +17,7 @@ fun GameRoomModel.toDto() = GameRoomDto(
 fun GameRoomModel.toDtoAsFlow(): Flow<GameRoomDto> = game.gameState
     .map { state ->
         GameRoomDto(
-            boardLayout = state.boardState
+            boardLayout = state.face
                 .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
             boardCount = boardCount,
             room = room,

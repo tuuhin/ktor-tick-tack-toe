@@ -15,9 +15,12 @@ class RoomAndPlayerServer {
     /**
      * Logger for the connector Messages
      */
-    private val playerLogger = KtorSimpleLogger("PLAYER_CONNECTION_LOGGER")
+    private val playerLogger = KtorSimpleLogger("ROOM_AND_PLAYER_SERVER_LOGGER")
 
 
+    /**
+     * The lock variable for synchronized work of adding and removing players
+     */
     private val lock = Any()
 
     /**
@@ -39,37 +42,45 @@ class RoomAndPlayerServer {
     fun createGameRoom(board: Int = 1, isAnonymous: Boolean = false): GameRoomModel {
         val room = generateNonce()
         val model = GameRoomModel(room = room, boardCount = board, isAnonymous = isAnonymous)
-        gameRooms[room] = model
-        playerLogger.info("CREATED NEW ROOM WITH ROOM ID $room")
-        return gameRooms.getOrDefault(room, defaultValue = model)
 
+        gameRooms[room] = model
+        return gameRooms.getOrDefault(room, defaultValue = model)
     }
 
     /**
      * Adds a player to an anonymous room,if there is no room its creates a new room and then adds the new user
      * @param player A [GamePlayerModel] representing the new player
-     */
-    fun addAnonymousPlayerToRoom(player: GamePlayerModel) = synchronized(lock) {
-        val isAnonymousRoomAvailable = gameRooms.values.find { it.isAnonymous && it.players.size < 2 }
-        isAnonymousRoomAvailable?.let { model ->
-            val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
+     * @return The instance of the [GamePlayerModel]  either the newly created one or an instance to which
+     * the new player is assigned
+     **/
+    fun addAnonymousPlayerToRoom(player: GamePlayerModel): GameRoomModel? {
 
-            val playerWithSymbol = player.copy(
-                symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
-            )
+        var gameRoom: GameRoomModel? = null
 
-            val players = when {
-                model.players.size < 2 -> model.players + playerWithSymbol
-                else -> model.players
-            }
-            gameRooms[model.room] = model.copy(players = players)
-        } ?: run {
-            // Helps to generate a unique string
-            createGameRoom(isAnonymous = true)
-                .also { model ->
-                    gameRooms[model.room] = model.copy(players = listOf(player))
+        synchronized(lock) {
+            gameRooms.values.find { it.isAnonymous && it.players.size < 2 }
+                ?.let { model ->
+                    val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
+
+                    val playerWithSymbol = player.copy(
+                        symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
+                    )
+                    if (model.players.size < 2) {
+                        gameRooms[model.room]?.addPlayersToTheRoom(playerWithSymbol)
+                    }
+                    gameRoom = gameRooms[model.room]
+                    playerLogger.info("ADDED PLAYER TO THE ROOM WITH ROOM ID ${model.room}")
+                } ?: run {
+                createGameRoom(isAnonymous = true).also { model ->
+                    model.addPlayersToTheRoom(player)
+                    gameRooms[model.room] = model
+
+                    gameRoom = gameRooms[model.room]
+                    playerLogger.info("CREATED GAME ROOM WITH ROOM ID ${model.room}")
                 }
+            }
         }
+        return gameRoom
     }
 
 
@@ -77,21 +88,26 @@ class RoomAndPlayerServer {
      * Adds the new player to a given room,also pick a proper symbol according to available choices
      * @param room RoomId
      * @param player A [GamePlayerModel] instance representing the new player
+     * @return [GameRoomModel] for the given room or returns null
      */
-    fun addPlayersToRoom(room: String, player: GamePlayerModel) = synchronized(lock) {
-        gameRooms[room]?.let { model ->
-            val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
+    fun addPlayersToRoom(room: String, player: GamePlayerModel): GameRoomModel? {
+        synchronized(lock) {
+            gameRooms[room]?.let { model ->
+                val xPlayerExits = model.players.any { it.symbol == BoardSymbols.XSymbol }
 
-            val playerWithSymbol = player.copy(
-                symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
-            )
+                val playerWithSymbol = player.copy(
+                    symbol = if (xPlayerExits) BoardSymbols.OSymbol else BoardSymbols.XSymbol
+                )
 
-            val players = when {
-                model.players.size < 2 -> model.players + playerWithSymbol
-                else -> model.players
-            }
-            gameRooms[room] = model.copy(players = players)
-        } ?: playerLogger.warn("Provided room not found")
+                if (model.players.size < 2) {
+                    gameRooms[model.room]?.addPlayersToTheRoom(playerWithSymbol)
+                    playerLogger.info("ADDED PLAYER TO THE ROOM WITH ROOM ID ${model.room}")
+                } else {
+                    playerLogger.info("THE ROOM CAN ONLY HAVE 2 MEMBERS, WHICH ARE ALREADY PRESENT")
+                }
+            } ?: playerLogger.warn("PROVIDED ROOM ID NOT FOUND")
+        }
+        return gameRooms.getOrDefault(room, null)
     }
 
 
@@ -103,14 +119,18 @@ class RoomAndPlayerServer {
     fun removePlayerFromRoom(player: GamePlayerModel) = synchronized(lock) {
         val playerRoom = getRoomFromClientId(player.clientId)
         gameRooms[playerRoom.room]?.let { model ->
-            val currentRoomPlayers = model.players.toMutableList()
-            currentRoomPlayers.remove(player)
-            if (currentRoomPlayers.size == 0) {
+
+            model.removePlayersFromTheRoom(player)
+            playerLogger.info("REMOVING PLAYER ${player.clientId} FROM THE ROOM")
+
+            if (model.players.isEmpty()) {
+
                 playerLogger.info("DELETING THE ROOM WITH ID :${playerRoom.room}")
                 deleteRoom(playerRoom.room)
 
-            } else
-                gameRooms[playerRoom.room] = model.copy(players = currentRoomPlayers)
+            } else {
+                gameRooms[playerRoom.room] = model
+            }
         }
     }
 
@@ -123,13 +143,24 @@ class RoomAndPlayerServer {
      */
     private fun deleteRoom(room: String) = gameRooms.remove(room)
 
+
     /**
      * Fetch the [GameRoomModel] where the [GamePlayerModel] has register with its client_id
      * @param clientId Client_Id of the player
      * @return [GameRoomModel] which has the client_id
+     * @throws [PlayerRoomNotFoundException] if none room found.
      */
     fun getRoomFromClientId(clientId: String): GameRoomModel = gameRooms.values
         .find { rooms ->
             rooms.players.any { player -> player.clientId == clientId }
         } ?: throw PlayerRoomNotFoundException()
+
+    /**
+     * Fetches the [GameRoomModel] with the provided roomId
+     * @param roomId The roomId of the room to be searched for.
+     * @return The [GameRoomModel] with matching roomId
+     * @throws [PlayerRoomNotFoundException] if roomId is not found
+     */
+    fun getRoomFromRoomId(roomId: String): GameRoomModel = gameRooms[roomId]
+        ?: throw PlayerRoomNotFoundException()
 }
