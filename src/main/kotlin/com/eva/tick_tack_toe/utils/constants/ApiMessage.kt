@@ -9,5 +9,6 @@ object ApiMessage {
     const val ROOM_FILLED_MESSAGE = "Room is filled,need to  create another one."
     const val ROOM_KEY_DO_NOT_EXITS = "Provided Room key do not exits"
     const val ROOM_JOIN_INVALID_DATA = "Received Invalid data"
+    const val WRONG_DTO_PROVIDED_OR_RECEIVED = "Serialization Error"
 
 }
