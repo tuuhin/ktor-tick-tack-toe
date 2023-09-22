@@ -9,9 +9,10 @@ fun GameRoomModel.toDto() = GameRoomDto(
         .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
     boardCount = boardCount,
     room = room,
-    winningSymbols = game.board.winnerSymbol?.symbol,
-    isDraw = game.board.isDraw,
-    isReady = isReady
+    winningSymbols = winnerSymbol?.symbol,
+    isDraw = isDraw,
+    isReady = isReady,
+    currentBoard = currentBoard
 )
 
 fun GameRoomModel.toDtoAsFlow(): Flow<GameRoomDto> = game.gameState
@@ -21,8 +22,9 @@ fun GameRoomModel.toDtoAsFlow(): Flow<GameRoomDto> = game.gameState
                 .map { symbolRow -> symbolRow.map { symbol -> symbol.symbol } },
             boardCount = boardCount,
             room = room,
-            winningSymbols = state.winnerSymbol?.symbol,
-            isDraw = state.isDraw,
-            isReady = isReady
+            winningSymbols = winnerSymbol?.symbol,
+            isDraw = isDraw,
+            isReady = isReady,
+            currentBoard = currentBoard
         )
     }

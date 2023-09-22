@@ -10,7 +10,6 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch

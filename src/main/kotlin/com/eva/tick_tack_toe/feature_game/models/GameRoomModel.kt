@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
  * @property isReady Marks the room to be ready to play
  * @property winnerSymbol Marks the round as complete and shows the current winner symbol
  * @property isDraw Marks the round as complete and shows if the board is drawn
+ * @property isNextRoundAvailable Checks and evaluate if the server needs to update the board
  */
 data class GameRoomModel(
     val room: String,
@@ -26,17 +27,30 @@ data class GameRoomModel(
 ) {
     private val _players: MutableList<GamePlayerModel> = mutableListOf()
 
+    var currentBoard = 0
+        private set
+
     val players: List<GamePlayerModel>
         get() = _players.toImmutableList()
 
     val isReady: Boolean
         get() = _players.size == 2
 
-    private val winnerSymbol: BoardSymbols?
+    val winnerSymbol: BoardSymbols?
         get() = game.board.winnerSymbol
 
-    private val isDraw: Boolean
+    val isDraw: Boolean
         get() = game.board.isDraw
+
+    val isNextRoundAvailable: Boolean
+        get() = currentBoard < boardCount
+
+    fun gameWinner(): GamePlayerModel = players.maxBy { it.points.winCount }
+
+    /**
+     * Increases the board count by 1
+     */
+    fun incrementBoardCount() = currentBoard++
 
     /**
      * Updates the player points according to the [winnerSymbol] and [isDraw] state
@@ -44,9 +58,9 @@ data class GameRoomModel(
     fun updatePlayerPoints() = players.forEach { player ->
         player.pointsFlow.update { points ->
             points.copy(
-                winCount = points.winCount + if (player.symbol == game.board.winnerSymbol) 1 else 0,
-                drawCount = points.drawCount + if (game.board.isDraw) 1 else 0,
-                looseCount = points.winCount + if (player.symbol != game.board.winnerSymbol) 1 else 0,
+                winCount = points.winCount + if (player.symbol == winnerSymbol) 1 else 0,
+                drawCount = points.drawCount + if (isDraw) 1 else 0,
+                looseCount = points.winCount + if (player.symbol != winnerSymbol) 1 else 0,
             )
         }
     }

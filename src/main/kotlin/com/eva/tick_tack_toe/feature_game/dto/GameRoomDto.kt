@@ -12,6 +12,9 @@ data class GameRoomDto(
     @SerialName("board_count")
     val boardCount: Int,
 
+    @SerialName("current_board")
+    val currentBoard: Int,
+
     @SerialName("board_layout")
     val boardLayout: List<List<Char>>,
 
