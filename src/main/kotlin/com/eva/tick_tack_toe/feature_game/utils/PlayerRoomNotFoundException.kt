@@ -1,4 +1,4 @@
-package com.eva.tick_tack_toe.feature_game.exceptions
+package com.eva.tick_tack_toe.feature_game.utils
 
 /**
  * Thrown when there is no room found.

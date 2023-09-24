@@ -46,7 +46,7 @@ fun Route.gameSocketRoute() = webSocket(path = ApiPaths.GAME_SOCKET_PATH_WITH_RO
         )
 
         try {
-            val broadcast = launch(Dispatchers.IO) { boardGame.broadCastGameState() }
+            val broadcast = launch(Dispatchers.IO) { boardGame.broadCastGameState(this@webSocket) }
 
             val receive = launch(Dispatchers.IO) { boardGame.onReceiveEvents(session = this@webSocket) }
 

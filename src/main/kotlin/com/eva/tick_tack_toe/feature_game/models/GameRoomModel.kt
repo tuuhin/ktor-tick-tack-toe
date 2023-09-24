@@ -27,7 +27,7 @@ data class GameRoomModel(
 ) {
     private val _players: MutableList<GamePlayerModel> = mutableListOf()
 
-    var currentBoard = 0
+    var currentBoard = 1
         private set
 
     val players: List<GamePlayerModel>
@@ -45,6 +45,10 @@ data class GameRoomModel(
     val isNextRoundAvailable: Boolean
         get() = currentBoard < boardCount
 
+
+    val hasGameStarted: Boolean
+        get() = game.board.face.any { row -> row.any { it != BoardSymbols.Blank } }
+
     fun gameWinner(): GamePlayerModel = players.maxBy { it.points.winCount }
 
     /**
@@ -57,28 +61,30 @@ data class GameRoomModel(
      */
     fun updatePlayerPoints() = players.forEach { player ->
         player.pointsFlow.update { points ->
-            points.copy(
-                winCount = points.winCount + if (player.symbol == winnerSymbol) 1 else 0,
-                drawCount = points.drawCount + if (isDraw) 1 else 0,
-                looseCount = points.winCount + if (player.symbol != winnerSymbol) 1 else 0,
-            )
+            if (isDraw)
+                points.copy(drawCount = points.drawCount + 1)
+            else
+                points.copy(
+                    winCount = points.winCount + if (player.symbol == winnerSymbol) 1 else 0,
+                    looseCount = points.looseCount + if (player.symbol != winnerSymbol) 1 else 0,
+                )
         }
     }
 
     /**
      * Adds a new player to the player list
      * @param player The instance of [GamePlayerModel] to be added
-     * @return [Boolean] if the result is successful
      */
-    fun addPlayersToTheRoom(player: GamePlayerModel) = _players.add(player)
+    fun addPlayersToTheRoom(player: GamePlayerModel) {
+        if (_players.size < 2)
+            _players.add(player)
+    }
 
     /**
      * Removes the player from the player list
      * @param player The instance of the player to be removed
-     * @return [Boolean] if the result is successful
      */
     fun removePlayersFromTheRoom(player: GamePlayerModel) = _players.remove(player)
-
 
     /**
      * Clears the old board and create a new one

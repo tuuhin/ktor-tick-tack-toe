@@ -1,6 +1,6 @@
 package com.eva.tick_tack_toe.utils
 
-import com.eva.tick_tack_toe.feature_game.exceptions.PlayerRoomNotFoundException
+import com.eva.tick_tack_toe.feature_game.utils.PlayerRoomNotFoundException
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import io.ktor.util.*
