@@ -17,6 +17,7 @@ import io.ktor.util.logging.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
 
@@ -156,48 +157,55 @@ class RealtimeBoardGame(
         if (!::playerRoom.isInitialized) {
             throw RoomUnInitializedException()
         }
-        return playerRoom.toDtoAsFlow()
+        return playerRoom
+            .toDtoAsFlow()
+            .onEach { checkForUpdatesAndEnd() }
             .collect { board ->
-                // If the board is not av
-                if (!playerRoom.game.canUpdateBoard) {
-                    playerRoom.updatePlayerPoints()
-                    if (playerRoom.isNextRoundAvailable) {
-                        playerRoom.incrementBoardCount()
-
-                        serverUtils.sendServerMessage(
-                            players = playerRoom.players,
-                            message = "Moving to next round after delay of 2 seconds"
-                        )
-
-                        delay(2.seconds)
-
-                        playerRoom.clearAndCreateNewRoom()
-                    } else {
-                        val winner = playerRoom.gameWinner()
-                        serverUtils.sendAchievement(
-                            players = playerRoom.players,
-                            message = "Game is over the winner is ",
-                            winnerSymbols = winner.symbol,
-                            winnerName = winner.userName
-                        )
-                    }
-                }
-                val boardGame = GameSendDataDto(
-                    playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
-                    playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
-                    board = board
-                )
                 playerRoom.players.find { it.session == session }?.let { player ->
+
+                    val boardGame = GameSendDataDto(
+                        playerX = playerRoom.players.find { it.symbol == BoardSymbols.XSymbol }?.toDto(),
+                        playerO = playerRoom.players.find { it.symbol == BoardSymbols.OSymbol }?.toDto(),
+                        board = board
+                    )
+
                     serverUtils.sendBoardGameState(
                         players = playerRoom.players,
                         self = player,
                         board = boardGame,
-                        sendSelf = !playerRoom.hasGameStarted
+                        isBroadcast = !playerRoom.hasGameStarted
                     )
                 } ?: Logger.error("CANNOT FIND A MATCHING PLAYER TO BROADCAST DATA")
             }
     }
 
+    /**
+     * Checks if the room can be updated and accordingly updates the points and board count.
+     */
+    private suspend fun checkForUpdatesAndEnd() {
+        if (!playerRoom.game.canUpdateBoard) {
+            playerRoom.updatePlayerPoints()
+            if (playerRoom.isNextRoundAvailable) {
+                playerRoom.incrementBoardCount()
+                serverUtils.sendServerMessage(
+                    players = playerRoom.players,
+                    message = "Moving to next round after delay of 2 seconds"
+                )
+
+                delay(2.seconds)
+
+                playerRoom.clearAndCreateNewRoom()
+            } else {
+                val winner = playerRoom.gameWinner()
+                serverUtils.sendAchievement(
+                    players = playerRoom.players,
+                    message = "Game is over the winner is ",
+                    winnerSymbols = winner.symbol,
+                    winnerName = winner.userName
+                )
+            }
+        }
+    }
 
     /**
      * Runs when the player wants to disconnect from the session or the session is complete

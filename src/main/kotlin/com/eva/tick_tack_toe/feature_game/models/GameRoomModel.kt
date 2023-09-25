@@ -49,6 +49,9 @@ data class GameRoomModel(
     val hasGameStarted: Boolean
         get() = game.board.face.any { row -> row.any { it != BoardSymbols.Blank } }
 
+    /**
+     * Gets the game winner by player with most win points
+     */
     fun gameWinner(): GamePlayerModel = players.maxBy { it.points.winCount }
 
     /**

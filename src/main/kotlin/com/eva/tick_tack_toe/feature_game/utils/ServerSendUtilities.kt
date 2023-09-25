@@ -62,16 +62,16 @@ class ServerSendUtilities {
      * Sends the [GameSendDataDto] as to the players, this is the actual info to be sent in the game
      * @param self The [GamePlayerModel] to which data is to be sent
      * @param board [GameSendDataDto] ,which contains the game data to be sent to the end user
-     * @param sendSelf Is broadcast being allowed
+     * @param isBroadcast Is broadcast being allowed
      */
     suspend fun sendBoardGameState(
         players: List<GamePlayerModel>,
         self: GamePlayerModel,
         board: GameSendDataDto,
-        sendSelf: Boolean = false,
+        isBroadcast: Boolean = false,
     ) {
         players.forEach { player ->
-            if (sendSelf)
+            if (isBroadcast)
                 player.session.sendSerialized(
                     ServerSendEventsDto.ServerGameState(state = board)
                 )
@@ -97,5 +97,4 @@ class ServerSendUtilities {
             ServerSendEventsDto.ServerMessage(message = message)
         )
     }
-
 }

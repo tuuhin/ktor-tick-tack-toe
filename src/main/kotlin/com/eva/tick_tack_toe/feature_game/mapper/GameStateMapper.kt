@@ -1,6 +1,5 @@
 package com.eva.tick_tack_toe.feature_game.mapper
 
-import com.eva.tick_tack_toe.Logger
 import com.eva.tick_tack_toe.feature_game.dto.GameRoomDto
 import com.eva.tick_tack_toe.feature_game.models.GameRoomModel
 import kotlinx.coroutines.Dispatchers
