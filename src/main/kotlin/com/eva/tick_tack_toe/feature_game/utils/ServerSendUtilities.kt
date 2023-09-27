@@ -38,7 +38,7 @@ class ServerSendUtilities {
      * @param winnerName Optional winner name
      * @param associatedText Some Extra text data to be sent
      */
-    suspend fun sendAchievement(
+    suspend fun sendWinnerAchievement(
         players: List<GamePlayerModel>,
         message: String,
         winnerSymbols: BoardSymbols,
@@ -52,6 +52,23 @@ class ServerSendUtilities {
                     secondaryText = associatedText,
                     winnerSymbols = winnerSymbols,
                     winnerName = winnerName
+                )
+            )
+        )
+    }
+
+
+    suspend fun sendDrawAchievement(
+        players: List<GamePlayerModel>,
+        message: String,
+        associatedText: String? = null,
+    ) = players.forEach { player ->
+        player.session.sendSerialized(
+            ServerSendEventsDto.GameAchievementState(
+                result = GameAchievementDto(
+                    text = message,
+                    secondaryText = associatedText,
+                    isDraw = true
                 )
             )
         )

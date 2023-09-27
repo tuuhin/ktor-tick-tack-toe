@@ -196,12 +196,17 @@ class RealtimeBoardGame(
 
                 playerRoom.clearAndCreateNewRoom()
             } else {
-                val winner = playerRoom.gameWinner()
-                serverUtils.sendAchievement(
+                playerRoom.checkAndGetGameWinner?.let { player ->
+                    serverUtils.sendWinnerAchievement(
+                        players = playerRoom.players,
+                        message = "Game is over the winner is ",
+                        winnerSymbols = player.symbol,
+                        winnerName = player.userName
+                    )
+                } ?: serverUtils.sendDrawAchievement(
                     players = playerRoom.players,
-                    message = "Game is over the winner is ",
-                    winnerSymbols = winner.symbol,
-                    winnerName = winner.userName
+                    message = "Draw",
+                    associatedText = "The game ended in a draw both the players have same wincounts"
                 )
             }
         }

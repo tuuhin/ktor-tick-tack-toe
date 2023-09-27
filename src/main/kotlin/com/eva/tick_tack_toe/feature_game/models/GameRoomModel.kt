@@ -51,8 +51,17 @@ data class GameRoomModel(
 
     /**
      * Gets the game winner by player with most win points
+     * @return [GamePlayerModel] with the max win points in case all players have same points returns null
      */
-    fun gameWinner(): GamePlayerModel = players.maxBy { it.points.winCount }
+    val checkAndGetGameWinner: GamePlayerModel?
+        get() {
+
+            val winner = players.maxBy { it.points.winCount }
+            val isAllPlayersHaveSameScore = players.all { it.points.winCount == winner.points.winCount }
+
+            if (isAllPlayersHaveSameScore) return null
+            return winner
+        }
 
     /**
      * Increases the board count by 1

@@ -1,6 +1,5 @@
 package com.eva.tick_tack_toe.feature_game.dto
 
-import com.eva.tick_tack_toe.feature_room.dto.GamePlayerDto
 import com.eva.tick_tack_toe.utils.BoardSymbols
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -20,8 +19,11 @@ data class GameAchievementDto(
     val secondaryText: String? = null,
 
     @SerialName("winner_symbol")
-    val winnerSymbols: BoardSymbols,
+    val winnerSymbols: BoardSymbols? = null,
 
     @SerialName("winner_name")
-    val winnerName: String? = null
+    val winnerName: String? = null,
+
+    @SerialName("is_draw")
+    val isDraw: Boolean = false
 )
