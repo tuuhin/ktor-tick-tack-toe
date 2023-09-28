@@ -14,7 +14,8 @@ object ServerSendEventsSerializer
         return when (element.jsonObject["type"]?.jsonPrimitive?.content) {
             ServerSendEventTypes.MESSAGE_TYPE.type -> ServerSendEventsDto.ServerMessage.serializer()
             ServerSendEventTypes.GAME_STATE_TYPE.type -> ServerSendEventsDto.ServerGameState.serializer()
-            else -> throw Exception("Unknown Module: key 'type' not found or does not matches any module type")
+            ServerSendEventTypes.ACHIEVEMENT_TYPE.type -> ServerSendEventsDto.GameAchievementState.serializer()
+            else -> throw Exception("Unknown key :type not found ")
         }
     }
 }

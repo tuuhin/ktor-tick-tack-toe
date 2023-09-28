@@ -28,6 +28,24 @@ sealed class TestBoardCombinations(val combinations: List<List<BoardSymbols>>) {
         }
     )
 
+    data object TopFilledWithXXXCombination : TestBoardCombinations(
+        combinations = List(3) { _ ->
+            List(3) { col ->
+                if (col == 0) BoardSymbols.XSymbol
+                else BoardSymbols.Blank
+            }
+        }
+    )
+
+    data object TopFilledWithOOOCombination : TestBoardCombinations(
+        combinations = List(3) { _ ->
+            List(3) { col ->
+                if (col == 0) BoardSymbols.OSymbol
+                else BoardSymbols.Blank
+            }
+        }
+    )
+
     data object LeftFilledXXXCombination : TestBoardCombinations(
         combinations = List(3) { row ->
             List(3) { _ ->

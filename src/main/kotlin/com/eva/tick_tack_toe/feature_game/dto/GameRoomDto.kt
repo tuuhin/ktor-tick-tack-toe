@@ -12,6 +12,9 @@ data class GameRoomDto(
     @SerialName("board_count")
     val boardCount: Int,
 
+    @SerialName("current_board")
+    val currentBoard: Int,
+
     @SerialName("board_layout")
     val boardLayout: List<List<Char>>,
 
@@ -22,9 +25,11 @@ data class GameRoomDto(
     @SerialName("winning_symbol")
     val winningSymbols: Char? = null,
 
+    @EncodeDefault
     @SerialName("is_draw")
-    val isDraw: Boolean,
+    val isDraw: Boolean = false,
 
+    @EncodeDefault
     @SerialName("is_ready")
-    val isReady: Boolean
+    val isReady: Boolean = false
 )

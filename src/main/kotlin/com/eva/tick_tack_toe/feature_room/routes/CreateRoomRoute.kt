@@ -15,43 +15,50 @@ import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 
 /**
- * Create Room route,creates a new room by passing the number of board count as a body
+ * Create Room route
+ *
+ * A new room is created with a randomId, and the specified rounds count.
+ * BoardCount should be greater than 0
  */
-fun Route.createRoomRoute() {
-    route(path = ApiPaths.CREATE_ROOM_PATH) {
+fun Route.createRoomRoute() = route(path = ApiPaths.CREATE_ROOM_PATH) {
+    val server by inject<RoomAndPlayerServer>()
 
-        val server by inject<RoomAndPlayerServer>()
-
-        get {
+    get {
+        call.respond(
+            status = HttpStatusCode.NotAcceptable,
+            message = BaseHttpResponse(ApiMessage.ROOM_GET_REQUEST_MESSAGE)
+        )
+    }
+    post {
+        try {
+            val serializer = call.receive<CreateRoomSerializer>()
+            if (serializer.rounds > 0) {
+                val game = server.createGameRoom(board = serializer.rounds)
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = RoomSerializer(room = game.room, rounds = game.boardCount)
+                )
+                return@post
+            }
+            call.respond(
+                status = HttpStatusCode.PreconditionFailed,
+                message = BaseHttpResponse(detail = ApiMessage.ROOM_CREATION_FAILED)
+            )
+        } catch (e: SerializationException) {
             call.respond(
                 status = HttpStatusCode.NotAcceptable,
-                message = BaseHttpResponse(ApiMessage.ROOM_GET_REQUEST_MESSAGE)
+                message = BaseHttpResponse(detail = ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
             )
-        }
-        post {
-            try {
-                call.receiveNullable<CreateRoomSerializer>()
-                    ?.let { serializer ->
-                        val game = server.createGameRoom(board = serializer.rounds)
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = RoomSerializer(room = game.room, rounds = game.boardCount)
-                        )
-                    } ?: call.respond(
-                    status = HttpStatusCode.PreconditionFailed,
-                    message = BaseHttpResponse(detail = ApiMessage.ROOM_CREATION_FAILED)
-                )
-            } catch (e: SerializationException) {
-                call.respond(
-                    status = HttpStatusCode.NoContent,
-                    message = BaseHttpResponse(ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
-                )
-            } catch (e: Exception) {
-                call.respond(
-                    status = HttpStatusCode.FailedDependency,
-                    message = BaseHttpResponse(ApiMessage.UNKNOWN_EXCEPTION_MESSAGE)
-                )
-            }
+        } catch (e: ContentTransformationException) {
+            call.respond(
+                status = HttpStatusCode.NotAcceptable,
+                message = BaseHttpResponse(detail = ApiMessage.WRONG_DTO_PROVIDED_OR_RECEIVED)
+            )
+        } catch (e: Exception) {
+            call.respond(
+                status = HttpStatusCode.FailedDependency,
+                message = BaseHttpResponse(ApiMessage.UNKNOWN_EXCEPTION_MESSAGE)
+            )
         }
     }
 }

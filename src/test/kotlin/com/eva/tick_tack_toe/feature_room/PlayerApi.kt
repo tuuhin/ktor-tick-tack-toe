@@ -11,6 +11,10 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 
+
+/**
+ * PlayerApi representation to be used by the client
+ */
 class PlayerApi(
     private val client: HttpClient
 ) {
@@ -24,10 +28,16 @@ class PlayerApi(
         }
         return when {
             response.status.isSuccess() -> response.body()
-            else -> throw ClientRequestException(
+            response.status.value in 300 until 400 -> throw RedirectResponseException(
+                response, response.bodyAsText()
+            )
+
+            response.status.value in 400 until 500 -> throw ClientRequestException(
                 response,
                 response.bodyAsText()
             )
+
+            else -> throw ServerResponseException(response, response.bodyAsText())
         }
     }
 
@@ -41,10 +51,16 @@ class PlayerApi(
         }
         return when {
             response.status.isSuccess() -> response.body()
-            else -> throw ClientRequestException(
+            response.status.value in 300 until 400 -> throw RedirectResponseException(
+                response, response.bodyAsText()
+            )
+
+            response.status.value in 400 until 500 -> throw ClientRequestException(
                 response,
                 response.bodyAsText()
             )
+
+            else -> throw ServerResponseException(response, response.bodyAsText())
         }
     }
 

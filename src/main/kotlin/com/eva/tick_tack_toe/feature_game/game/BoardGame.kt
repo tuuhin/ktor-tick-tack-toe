@@ -23,13 +23,13 @@ class BoardGame {
         get() = gameState.value
 
     val canUpdateBoard: Boolean
-        get() = gameState.value.winnerSymbol != null || gameState.value.isDraw
+        get() = board.winnerSymbol == null && !board.isDraw
 
     /**
      * Updates the board state according to the [BoardPosition] and [BoardSymbols] received
      */
     fun updateBoardState(position: BoardPosition, playerSymbols: BoardSymbols) {
-        val updatedBoard = _gameState.value.boardState
+        val updatedBoard = _gameState.value.face
             .mapIndexed { rowIndex, rowList ->
                 rowList.mapIndexed { colIndex, symbols ->
                     if (position.x == rowIndex && position.y == colIndex)
@@ -52,7 +52,7 @@ class BoardGame {
             state.copy(
                 isDraw = allFilled,
                 winnerSymbol = if (hasWinningCombination) playerSymbols else null,
-                boardState = updatedBoard
+                face = updatedBoard
             )
         }
     }
@@ -63,7 +63,7 @@ class BoardGame {
      */
     fun prepareNewBoard() = _gameState.updateAndGet {
         it.copy(
-            boardState = GameState.emptyBoardState(),
+            face = GameState.emptyBoardState(),
             winnerSymbol = null,
             isDraw = false
         )

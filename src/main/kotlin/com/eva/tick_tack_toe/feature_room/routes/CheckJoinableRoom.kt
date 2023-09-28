@@ -15,7 +15,11 @@ import kotlinx.serialization.SerializationException
 import org.koin.ktor.ext.inject
 
 /**
- * Checks if the room is join able i.e, the room exits and the number of players is lesser than 2.
+ * Verify the room if the room is join able
+ *
+ * The serializer data need to satisfy
+ *  1. Room with the given roomId exits
+ *  2. Room should have player size lesser than 2
  */
 fun Route.checkJoinRoomRequest() {
     val server by inject<RoomAndPlayerServer>()
@@ -27,48 +31,58 @@ fun Route.checkJoinRoomRequest() {
             )
         }
         post {
-            //create a room id that is a string
             try {
-                call.receiveNullable<RoomSerializer>()
-                    ?.let { serializer ->
-                        server.gameRooms.keys
-                            .find { roomId -> roomId == serializer.room }
-                            ?.let { key ->
-                                server.gameRooms[key]?.let { model ->
-                                    val roomContentSize = model.players.size
-                                    if (roomContentSize < 2) {
-                                        call.respond(
-                                            status = HttpStatusCode.OK,
-                                            message = VerifyRoomDto(
-                                                message = ApiMessage.ROOM_JOIN_ABLE_MESSAGE,
-                                                roomSerializer = RoomSerializer(
-                                                    room = serializer.room,
-                                                    rounds = model.boardCount
-                                                )
-                                            )
-                                        )
-                                        return@post
-                                    }
-                                    call.respond(
-                                        status = HttpStatusCode.NotAcceptable,
-                                        message = BaseHttpResponse(detail = ApiMessage.ROOM_FILLED_MESSAGE)
-                                    )
-                                }
-                            } ?: call.respond(
-                            status = HttpStatusCode.BadRequest,
-                            message = BaseHttpResponse(detail = ApiMessage.ROOM_KEY_DO_NOT_EXITS)
-                        )
-                    } ?: call.respond(
-                    status = HttpStatusCode.BadRequest,
-                    message = BaseHttpResponse(detail = ApiMessage.ROOM_JOIN_INVALID_DATA)
-                )
+                val serializer = call.receive<RoomSerializer>()
+                val roomId = server.gameRooms.keys
+                    .find { roomId -> roomId == serializer.room }
 
+                if (roomId == null) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = BaseHttpResponse(detail = ApiMessage.ROOM_KEY_DO_NOT_EXITS)
+                    )
+                    return@post
+                }
+
+                val gameRoom = server.gameRooms[roomId]
+
+                if (gameRoom == null) {
+                    call.respond(
+                        status = HttpStatusCode.NotAcceptable,
+                        message = BaseHttpResponse(detail = ApiMessage.ROOM_JOIN_INVALID_DATA)
+                    )
+                    return@post
+                }
+                val roomContentSize = gameRoom.players.size
+                if (roomContentSize < 2) {
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = VerifyRoomDto(
+                            message = ApiMessage.ROOM_JOIN_ABLE_MESSAGE,
+                            roomSerializer = RoomSerializer(
+                                room = serializer.room,
+                                rounds = gameRoom.boardCount
+                            )
+                        )
+                    )
+                    return@post
+                }
+                call.respond(
+                    status = HttpStatusCode.NotAcceptable,
+                    message = BaseHttpResponse(detail = ApiMessage.ROOM_FILLED_MESSAGE)
+                )
             } catch (e: SerializationException) {
                 call.respond(
-                    status = HttpStatusCode.NoContent,
-                    message = BaseHttpResponse(ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
+                    status = HttpStatusCode.NotAcceptable,
+                    message = BaseHttpResponse(detail = ApiMessage.SERIALIZATION_EXCEPTION_MESSAGE)
+                )
+            } catch (e: ContentTransformationException) {
+                call.respond(
+                    status = HttpStatusCode.NotAcceptable,
+                    message = BaseHttpResponse(detail = ApiMessage.WRONG_DTO_PROVIDED_OR_RECEIVED)
                 )
             } catch (e: Exception) {
+                e.printStackTrace()
                 call.respond(
                     status = HttpStatusCode.FailedDependency,
                     message = BaseHttpResponse(ApiMessage.UNKNOWN_EXCEPTION_MESSAGE)

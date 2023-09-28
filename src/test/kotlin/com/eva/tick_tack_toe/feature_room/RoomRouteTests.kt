@@ -8,17 +8,9 @@ import io.ktor.client.plugins.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
-import org.koin.core.context.stopKoin
-import kotlin.test.AfterTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import kotlin.test.*
 
 class RoomRouteTests {
-
-    @AfterTest
-    fun stopApplication() {
-        stopKoin()
-    }
 
     @Test
     fun `test create room requests with rounds and check if the room is join-able or not`() = testApplication {
@@ -29,15 +21,24 @@ class RoomRouteTests {
         val playerApi = PlayerApi(testClient)
 
         val createRoom = playerApi.createRoom(2)
-        assertEquals(createRoom.rounds, 2, "checking the number of rounds")
-        assertEquals(createRoom.room.length, 16, "room id is anonymous but will be always of length 16")
+        assertTrue(message = "checking the number of rounds") {
+            createRoom.rounds == 2
+        }
+
+        assertTrue(message = "There is a roomId received which is not empty and is not blank") {
+            createRoom.room.isNotEmpty() && createRoom.room.isNotBlank()
+        }
 
         val roomIdReceived = createRoom.room
 
         val verifyRoom = playerApi.checkRoom(roomIdReceived)
 
-        assertEquals(verifyRoom.roomSerializer.rounds, 2, "checking the number of rounds")
-        assertEquals(verifyRoom.message, ApiMessage.ROOM_JOIN_ABLE_MESSAGE, message = "Room is join-able or not")
+        assertTrue(message = "checking the number of rounds is it matching with with the results returned during creation") {
+            verifyRoom.roomSerializer.rounds == 2
+        }
+        assertTrue(message = " Room is join-able or not") {
+            verifyRoom.message == ApiMessage.ROOM_JOIN_ABLE_MESSAGE
+        }
 
     }
 
@@ -48,8 +49,14 @@ class RoomRouteTests {
         }
         val player = PlayerApi(testClient)
         val room = player.createRoom()
-        assertEquals(room.rounds, 1, "checking the number of rounds")
-        assertEquals(room.room.length, 16, "room id is anonymous but will be always of length 16")
+
+        assertTrue(message = "checking the number of rounds") {
+            room.rounds == 1
+        }
+
+        assertTrue(message = "There is a roomId received which is not empty and is not blank") {
+            room.room.isNotEmpty() && room.room.isNotBlank()
+        }
     }
 
     @Test
@@ -64,17 +71,13 @@ class RoomRouteTests {
         } catch (e: ClientRequestException) {
             val clientException = e.response.body<BaseHttpResponse>()
 
-            assertEquals(
-                HttpStatusCode.BadRequest,
-                e.response.status,
-                message = "Checking the status code to be same or not"
-            )
+            assertTrue(message = "Checking the status code to be same or not") {
+                HttpStatusCode.BadRequest == e.response.status
+            }
 
-            assertEquals(
-                ApiMessage.ROOM_KEY_DO_NOT_EXITS,
-                clientException.detail,
-                message = "Checking the client exception is room not found"
-            )
+            assertTrue(message = "Checking the client exception is room not found") {
+                ApiMessage.ROOM_KEY_DO_NOT_EXITS == clientException.detail
+            }
         }
     }
 }

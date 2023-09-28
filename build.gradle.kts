@@ -1,9 +1,9 @@
 import io.ktor.plugin.features.*
 
 plugins {
-    kotlin("jvm") version "1.8.20"
-    id("io.ktor.plugin") version "2.3.3"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
+    alias(libs.plugins.jetbrains.kotlin.jvm)
+    alias(libs.plugins.ktor.plugin)
+    alias(libs.plugins.kotlin.plugin.serialization)
 }
 
 group = "com.eva"
@@ -28,7 +28,7 @@ ktor {
         portMappings.set(
             listOf(
                 DockerPortMapping(
-                    8080,
+                    80,
                     8080,
                     DockerPortMappingProtocol.TCP
                 )
@@ -59,4 +59,5 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.coroutine.test)
     testImplementation(libs.client.contentnegotiation)
+    testImplementation(libs.app.cash.turbine)
 }
