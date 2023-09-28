@@ -126,6 +126,7 @@ class RoomAndPlayerServer {
             if (model.players.isEmpty()) {
 
                 playerLogger.info("DELETING THE ROOM WITH ID :${playerRoom.room}")
+                playerRoom.cancelScope()
                 deleteRoom(playerRoom.room)
 
             } else {

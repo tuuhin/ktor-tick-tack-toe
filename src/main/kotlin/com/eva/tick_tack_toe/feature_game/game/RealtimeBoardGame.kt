@@ -1,6 +1,5 @@
 package com.eva.tick_tack_toe.feature_game.game
 
-import com.eva.tick_tack_toe.Logger
 import com.eva.tick_tack_toe.feature_game.dto.GameReceiveDataDto
 import com.eva.tick_tack_toe.feature_game.dto.GameSendDataDto
 import com.eva.tick_tack_toe.feature_game.mapper.toDtoAsFlow
@@ -15,11 +14,9 @@ import com.eva.tick_tack_toe.utils.RoomAndPlayerServer
 import io.ktor.server.websocket.*
 import io.ktor.util.logging.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.Json
-import kotlin.time.Duration.Companion.seconds
 
 
 /**
@@ -32,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
  * Manages the room when a user joins either via room or anonymously
  *
  * @param serverUtils [ServerSendUtilities]
- * A set of utility functions that helps to send server and other info to the client
+ * A set of utility functions that helps to send server and other information to the client
  */
 class RealtimeBoardGame(
     private val playerServer: RoomAndPlayerServer,
@@ -129,25 +126,26 @@ class RealtimeBoardGame(
         if (!::playerRoom.isInitialized) {
             throw RoomUnInitializedException()
         }
-        return session.incoming.consumeEach { frame ->
-            (frame as? Frame.Text)?.let { frameText ->
+        return session.incoming.consumeAsFlow()
+            .collect { frame ->
+                (frame as? Frame.Text)?.let { frameText ->
 
-                val readText = frameText.readText()
-                val data = Json.decodeFromString<GameReceiveDataDto>(readText)
+                    val readText = frameText.readText()
+                    val data = Json.decodeFromString<GameReceiveDataDto>(readText)
 
-                val isBoardReadyAndNoResults = playerRoom.game.canUpdateBoard && playerRoom.isReady
+                    val isBoardReadyAndNoResults = playerRoom.game.canUpdateBoard && playerRoom.isReady
 
-                if (isBoardReadyAndNoResults) {
+                    if (isBoardReadyAndNoResults) {
 
-                    playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
-                        playerRoom.game.updateBoardState(
-                            position = data.boardPosition.toModel(),
-                            playerSymbols = player.symbol
-                        )
-                    } ?: logger.error("CANNOT FIND A MATCHING CLIENT ID IN THE ROOM TO RECEIVE DATA")
+                        playerRoom.players.find { it.clientId == data.clientId }?.let { player ->
+                            playerRoom.game.updateBoardState(
+                                position = data.boardPosition.toModel(),
+                                playerSymbols = player.symbol
+                            )
+                        } ?: logger.error("CANNOT FIND A MATCHING CLIENT ID IN THE ROOM TO RECEIVE DATA")
+                    }
                 }
             }
-        }
     }
 
     /**
@@ -157,8 +155,7 @@ class RealtimeBoardGame(
         if (!::playerRoom.isInitialized) {
             throw RoomUnInitializedException()
         }
-        return playerRoom
-            .toDtoAsFlow()
+        return playerRoom.toDtoAsFlow()
             .onEach { checkForUpdatesAndEnd() }
             .collect { board ->
                 playerRoom.players.find { it.session == session }?.let { player ->
@@ -175,7 +172,7 @@ class RealtimeBoardGame(
                         board = boardGame,
                         isBroadcast = !playerRoom.hasGameStarted
                     )
-                } ?: Logger.error("CANNOT FIND A MATCHING PLAYER TO BROADCAST DATA")
+                } ?: logger.error("CANNOT FIND A MATCHING PLAYER TO BROADCAST DATA")
             }
     }
 
@@ -183,34 +180,30 @@ class RealtimeBoardGame(
      * Checks if the room can be updated and accordingly updates the points and board count.
      */
     private suspend fun checkForUpdatesAndEnd() {
-        if (!playerRoom.game.canUpdateBoard) {
-            playerRoom.updatePlayerPoints()
-            if (playerRoom.isNextRoundAvailable) {
-                playerRoom.incrementBoardCount()
-                serverUtils.sendServerMessage(
-                    players = playerRoom.players,
-                    message = "Moving to next round after delay of 2 seconds"
-                )
+        if (playerRoom.game.canUpdateBoard) return
+        if (playerRoom.isNextRoundAvailable) {
 
-                delay(2.seconds)
-
-                playerRoom.clearAndCreateNewRoom()
-            } else {
-                playerRoom.checkAndGetGameWinner?.let { player ->
-                    serverUtils.sendWinnerAchievement(
-                        players = playerRoom.players,
-                        message = "Game is over the winner is ",
-                        winnerSymbols = player.symbol,
-                        winnerName = player.userName
-                    )
-                } ?: serverUtils.sendDrawAchievement(
-                    players = playerRoom.players,
-                    message = "Draw",
-                    associatedText = "The game ended in a draw both the players have same wincounts"
-                )
-            }
+            serverUtils.sendServerMessage(
+                players = playerRoom.players,
+                message = "Moving to next round after delay of ${playerRoom.delay.inWholeSeconds} seconds"
+            )
+            return
         }
+        playerRoom.checkAndGetGameWinner?.let { player ->
+            serverUtils.sendWinnerAchievement(
+                players = playerRoom.players,
+                message = "Game is over the winner is ",
+                winnerSymbols = player.symbol,
+                winnerName = player.userName
+            )
+        } ?: serverUtils.sendDrawAchievement(
+            players = playerRoom.players,
+            message = "Draw",
+            associatedText = "The game ended in a draw both the players have same win-counts"
+        )
+
     }
+
 
     /**
      * Runs when the player wants to disconnect from the session or the session is complete
@@ -220,6 +213,7 @@ class RealtimeBoardGame(
         if (!::playerRoom.isInitialized) {
             throw RoomUnInitializedException()
         }
+        logger.info("THE PLAYER: ${player.clientId} DISCONNECTED WITH THE GAME")
 
         playerServer.removePlayerFromRoom(player = player)
 

@@ -25,9 +25,11 @@ data class GameRoomDto(
     @SerialName("winning_symbol")
     val winningSymbols: Char? = null,
 
+    @EncodeDefault
     @SerialName("is_draw")
-    val isDraw: Boolean,
+    val isDraw: Boolean = false,
 
+    @EncodeDefault
     @SerialName("is_ready")
-    val isReady: Boolean
+    val isReady: Boolean = false
 )

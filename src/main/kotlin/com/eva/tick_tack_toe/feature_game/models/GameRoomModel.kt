@@ -1,14 +1,18 @@
 package com.eva.tick_tack_toe.feature_game.models
 
+import com.eva.tick_tack_toe.Logger
 import com.eva.tick_tack_toe.feature_game.game.BoardGame
 import com.eva.tick_tack_toe.feature_room.models.GamePlayerModel
 import com.eva.tick_tack_toe.utils.BoardSymbols
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 
 /**
- * Represents a Game Room
+ * Represents a Game Room.
  * @property room RoomId of the Game room created or used
  * @property players A [List] of [GamePlayerModel] which have joined the game room or will be playing the game
  * @property game The Actual board game
@@ -26,6 +30,10 @@ data class GameRoomModel(
     val isAnonymous: Boolean = true,
 ) {
     private val _players: MutableList<GamePlayerModel> = mutableListOf()
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    val delay: Duration = 2.seconds
 
     var currentBoard = 1
         private set
@@ -55,7 +63,6 @@ data class GameRoomModel(
      */
     val checkAndGetGameWinner: GamePlayerModel?
         get() {
-
             val winner = players.maxBy { it.points.winCount }
             val isAllPlayersHaveSameScore = players.all { it.points.winCount == winner.points.winCount }
 
@@ -66,12 +73,31 @@ data class GameRoomModel(
     /**
      * Increases the board count by 1
      */
-    fun incrementBoardCount() = currentBoard++
+    private fun incrementBoardCount() = synchronized(this) { currentBoard++ }
+
+
+    init {
+        // A central flow listener which listens for changes and fire updatePoints
+        // and increases the board count and clears the board to create a new room
+        game.gameState
+            .onStart { Logger.info("STARTING A LISTENER FOR GAME STATE FOR GAME ROOM $room") }
+            .catch { err -> Logger.error("ERROR OCCURRED ${err.localizedMessage}") }
+            .onEach { state ->
+                if (state.winnerSymbol != null || state.isDraw) {
+                    updatePlayersPoints()
+                    if (isNextRoundAvailable) {
+                        delay(delay)
+                        incrementBoardCount()
+                        clearAndCreateNewRoom()
+                    }
+                }
+            }.launchIn(coroutineScope)
+    }
 
     /**
      * Updates the player points according to the [winnerSymbol] and [isDraw] state
      */
-    fun updatePlayerPoints() = players.forEach { player ->
+    private fun updatePlayersPoints() = players.forEach { player ->
         player.pointsFlow.update { points ->
             if (isDraw)
                 points.copy(drawCount = points.drawCount + 1)
@@ -101,6 +127,11 @@ data class GameRoomModel(
     /**
      * Clears the old board and create a new one
      */
-    fun clearAndCreateNewRoom() = game.prepareNewBoard()
+    private fun clearAndCreateNewRoom() = game.prepareNewBoard()
+
+    /**
+     * Clears the scope for the game
+     */
+    fun cancelScope() = coroutineScope.cancel()
 
 }
