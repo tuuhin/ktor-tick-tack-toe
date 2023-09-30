@@ -31,8 +31,8 @@ sealed class BoardWinningCombinations(
      */
     data object DiagonalCombinations : BoardWinningCombinations(
         combinations = listOf(
-            listOf(BoardPosition(0, 0), BoardPosition(1, 1), BoardPosition(2, 2)),
-            listOf(BoardPosition(0, 2), BoardPosition(1, 1), BoardPosition(2, 0)),
+            List(3) { idx -> BoardPosition(idx, idx) },
+            List(3) { idx -> BoardPosition(idx, 2 - idx) },
         )
     )
 

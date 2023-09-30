@@ -192,7 +192,7 @@ class RealtimeBoardGame(
         playerRoom.checkAndGetGameWinner?.let { player ->
             serverUtils.sendWinnerAchievement(
                 players = playerRoom.players,
-                message = "Game is over the winner is ",
+                message = "Game is over the winner is ${player.symbol.symbol}",
                 winnerSymbols = player.symbol,
                 winnerName = player.userName
             )

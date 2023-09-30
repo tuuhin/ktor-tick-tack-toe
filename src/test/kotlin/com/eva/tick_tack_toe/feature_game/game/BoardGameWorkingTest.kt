@@ -168,4 +168,28 @@ class BoardGameWorkingTest {
             boardGame.board.isDraw
         }
     }
+
+    @Test
+    fun `checking another random combination to check some improper cases`() = runTest {
+
+        boardGame.apply {
+            updateBoardState(position = BoardPosition(x = 1, y = 1), playerSymbols = BoardSymbols.XSymbol)
+            updateBoardState(position = BoardPosition(x = 0, y = 0), playerSymbols = BoardSymbols.OSymbol)
+            updateBoardState(position = BoardPosition(x = 0, y = 2), playerSymbols = BoardSymbols.XSymbol)
+            updateBoardState(position = BoardPosition(x = 2, y = 0), playerSymbols = BoardSymbols.OSymbol)
+            updateBoardState(position = BoardPosition(x = 1, y = 2), playerSymbols = BoardSymbols.XSymbol)
+            updateBoardState(position = BoardPosition(x = 0, y = 1), playerSymbols = BoardSymbols.OSymbol)
+            updateBoardState(position = BoardPosition(x = 1, y = 0), playerSymbols = BoardSymbols.XSymbol)
+        }
+        //The board is in a winning state
+
+        assertTrue(message = "There is a winner ") {
+            boardGame.board.winnerSymbol == BoardSymbols.XSymbol
+        }
+
+        assertTrue(message = "Its not in a draw configuration") {
+            !boardGame.board.isDraw
+        }
+
+    }
 }
